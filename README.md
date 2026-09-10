@@ -84,6 +84,14 @@ SOPS Safe deliberately does not support untrusted workspaces, virtual workspaces
 | `vscode-sops.runtimeDirectory` | `$XDG_RUNTIME_DIR/vscode-sops` | Private runtime directory; must remain beneath `$XDG_RUNTIME_DIR` |
 | `vscode-sops.trustedExtensions` | `[]` | Machine-local IDs allowed to share the extension host with decrypted documents |
 
+## GitHub releases
+
+To release a version, keep `package.json`, `package-lock.json`, and `flake.nix` versions in sync. When changing the lockfile, refresh `fetchNpmDeps.hash` in `flake.nix` and verify `nix build .#vsix` before tagging. Commit the changes and publish a [GitHub release](https://github.com/jgus-org/vscode-sops-flake/releases) with a matching tag such as `v0.1.0`. The tagged commit must include the release workflow.
+
+The release workflow checks the version, runs `nix build .#vsix` (including the test suite), and attaches `vscode-sops-<version>.vsix` to the release. It uses GitHub's automatic token; no additional publishing secret is needed. Failed runs can be rerun from the Actions tab.
+
+Download the VSIX from the release assets and install it using **Extensions: Install from VSIX** in VS Code, or `code-server --install-extension /path/to/vscode-sops-<version>.vsix` on the code-server host.
+
 ## License
 
 MIT

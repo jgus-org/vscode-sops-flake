@@ -7,10 +7,9 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jgus-org/nix.git",
-    "directory": "flakes/vscode-sops"
+    "url": "https://github.com/jgus-org/vscode-sops-flake.git"
   },
-  "homepage": "https://github.com/jgus-org/nix/tree/main/flakes/vscode-sops",
+  "homepage": "https://github.com/jgus-org/vscode-sops-flake#readme",
   "engines": {
     "vscode": "^1.85.0"
   },
