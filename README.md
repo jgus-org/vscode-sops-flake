@@ -84,6 +84,13 @@ SOPS Safe deliberately does not support untrusted workspaces, virtual workspaces
 | `vscode-sops.runtimeDirectory` | `$XDG_RUNTIME_DIR/vscode-sops` | Private runtime directory; must remain beneath `$XDG_RUNTIME_DIR` |
 | `vscode-sops.trustedExtensions` | `[]` | Machine-local IDs allowed to share the extension host with decrypted documents |
 
+## Installation
+
+Download `vscode-sops-<version>.vsix` from the assets on the [GitHub releases page](https://github.com/jgus-org/vscode-sops-flake/releases).
+
+- **VS Code:** Run **Extensions: Install from VSIX** from the Command Palette and select the downloaded file.
+- **code-server:** Copy the downloaded file to the code-server host and run `code-server --install-extension /path/to/vscode-sops-<version>.vsix` there.
+
 ## License
 
 MIT

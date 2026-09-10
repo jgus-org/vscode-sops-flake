@@ -1,0 +1,59 @@
+name: Release VSIX
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.release.id }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name }}
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ github.event.release.tag_name }}
+          persist-credentials: false
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@1ca7d21a94afc7c957383a2d217460d980de4934 # v31.10.1
+
+      - name: Validate release version
+        id: version
+        run: |
+          package_version=$(jq -er '.version' package.json)
+          if [[ "$RELEASE_TAG" != "v$package_version" ]]; then
+            printf 'Release tag must be v%s; received %s.\n' "$package_version" "$RELEASE_TAG" >&2
+            exit 1
+          fi
+          flake_version=$(nix eval --raw .#packages.x86_64-linux.vsix.version --no-write-lock-file)
+          if [[ "$flake_version" != "$package_version" ]]; then
+            printf 'flake.nix version %s does not match package.json version %s.\n' "$flake_version" "$package_version" >&2
+            exit 1
+          fi
+          printf 'version=%s\n' "$package_version" >> "$GITHUB_OUTPUT"
+
+      - name: Build and test VSIX
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          nix build .#vsix --no-write-lock-file --out-link "$RUNNER_TEMP/vscode-sops-vsix"
+          cp "$RUNNER_TEMP/vscode-sops-vsix" "vscode-sops-$VERSION.vsix"
+
+      - name: Attach VSIX to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: gh release upload "$RELEASE_TAG" "vscode-sops-$VERSION.vsix" --clobber
