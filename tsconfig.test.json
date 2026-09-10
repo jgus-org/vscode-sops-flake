@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": ".",
+    "outDir": "build-test",
+    "declaration": false,
+    "sourceMap": false
+  },
+  "include": [
+    "src/editor-bridge.ts",
+    "test/**/*.ts"
+  ]
+}
