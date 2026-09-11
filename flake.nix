@@ -69,6 +69,16 @@
             platforms = pkgs.lib.platforms.linux;
           };
         };
+
+        ovsx = pkgs.writeShellApplication {
+          name = "ovsx";
+          text = ''
+            exec ${pkgs.python3}/bin/python3 ${./scripts/ovsx.py} \
+              --sops ${pkgs.sops}/bin/sops \
+              --npx ${pkgs.nodejs}/bin/npx \
+              --secrets ${./secrets.yaml} -- "$@"
+          '';
+        };
       in
       {
         packages = {
@@ -76,11 +86,18 @@
           default = sops-safe;
         };
         checks.default = sops-safe;
+        checks.ovsx-wrapper = pkgs.runCommand "ovsx-wrapper-tests" {
+          nativeBuildInputs = [ pkgs.python3 ];
+        } ''
+          python3 ${./test/ovsx-wrapper.test.py} ${./scripts/ovsx.py}
+          touch "$out"
+        '';
         devShells.default = pkgs.mkShellNoCC {
           packages = with pkgs; [
             age
             nodejs
             sops
+            ovsx
           ];
         };
       });
