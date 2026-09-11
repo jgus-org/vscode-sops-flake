@@ -1,0 +1,42 @@
+name: Download latest release
+description: Download the latest stable release and validate its VSIX identity and version.
+
+inputs:
+  path:
+    description: Destination path for the validated VSIX.
+    default: sops-safe.vsix
+
+runs:
+  using: composite
+  steps:
+    - name: Download and validate latest release
+      shell: bash
+      env:
+        VSIX: ${{ inputs.path }}
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+      run: |
+        tag=$(gh api "repos/$GH_REPO/releases/latest" --jq '.tag_name')
+        if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          printf 'Expected a stable vMAJOR.MINOR.PATCH release tag; received %s.\n' "$tag" >&2
+          exit 1
+        fi
+        version=${tag#v}
+        gh release download "$tag" --pattern "sops-safe-$version.vsix" --output "$VSIX"
+        python3 - "$VSIX" "$version" <<'PY'
+        import json
+        import sys
+        import xml.etree.ElementTree as ET
+        import zipfile
+
+        with zipfile.ZipFile(sys.argv[1]) as archive:
+            package = json.loads(archive.read("extension/package.json"))
+            manifest = ET.fromstring(archive.read("extension.vsixmanifest"))
+        identity = manifest.find("{*}Metadata/{*}Identity")
+        expected = ("jgus", "sops-safe", sys.argv[2])
+        package_identity = tuple(package.get(key) for key in ("publisher", "name", "version"))
+        vsix_identity = tuple(identity.get(key) for key in ("Publisher", "Id", "Version")) if identity is not None else None
+        if package_identity != expected or vsix_identity != expected:
+            sys.exit("Both VSIX manifests must identify jgus.sops-safe with the version from its release tag.")
+        PY
+        printf 'Validated **jgus.sops-safe %s** from release **%s**.\n' "$version" "$tag" >> "$GITHUB_STEP_SUMMARY"
