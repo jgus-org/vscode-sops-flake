@@ -95,9 +95,9 @@ Nix users can select `packages.<system>.sops-safe`.
 
 ## Development shell
 
-Run `direnv allow` with direnv's Nix integration enabled, or enter manually with `nix develop`. The shell provides `ovsx`, pinned to Open VSX CLI 1.2.0; for example, `ovsx --help` or `ovsx publish ./sops-safe-0.1.0.vsix`.
+Run `direnv allow` with direnv's Nix integration enabled, or enter manually with `nix develop`. The shell provides `ovsx`, a Bash wrapper around `npx ovsx@1.2.0`; for example, `ovsx publish ./sops-safe-0.1.0.vsix`.
 
-Configure your SOPS identity normally, such as with `SOPS_AGE_KEY_FILE` or the default age key file. Authenticated commands decrypt `open_vsx_pat` from the repository's encrypted `secrets.yaml` when invoked. The token is passed only to the CLI process environment; entering the shell, help, and version commands do not decrypt it. The wrapper redacts the token from CLI output and disables explicit PAT/debug flags and `ovsx login`, which would persist credentials.
+Configure your SOPS identity normally, such as with `SOPS_AGE_KEY_FILE` or the default age key file. Each invocation decrypts `open_vsx_pat` from the encrypted `secrets.yaml` and passes it to `npx` through `OVSX_PAT`. Entering the shell does not decrypt or export the token. Failed decryption or an empty token stops the command.
 
 ## License
 

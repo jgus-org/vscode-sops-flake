@@ -72,11 +72,15 @@
 
         ovsx = pkgs.writeShellApplication {
           name = "ovsx";
+          runtimeInputs = [ pkgs.sops pkgs.nodejs ];
           text = ''
-            exec ${pkgs.python3}/bin/python3 ${./scripts/ovsx.py} \
-              --sops ${pkgs.sops}/bin/sops \
-              --npx ${pkgs.nodejs}/bin/npx \
-              --secrets ${./secrets.yaml} -- "$@"
+            set +x
+            open_vsx_pat=$(sops decrypt --extract '["open_vsx_pat"]' ${./secrets.yaml})
+            if [[ -z "$open_vsx_pat" ]]; then
+              echo "open_vsx_pat is empty" >&2
+              exit 1
+            fi
+            OVSX_PAT="$open_vsx_pat" exec npx --yes --ignore-scripts --package=ovsx@1.2.0 -- ovsx "$@"
           '';
         };
       in
@@ -86,12 +90,6 @@
           default = sops-safe;
         };
         checks.default = sops-safe;
-        checks.ovsx-wrapper = pkgs.runCommand "ovsx-wrapper-tests" {
-          nativeBuildInputs = [ pkgs.python3 ];
-        } ''
-          python3 ${./test/ovsx-wrapper.test.py} ${./scripts/ovsx.py}
-          touch "$out"
-        '';
         devShells.default = pkgs.mkShellNoCC {
           packages = with pkgs; [
             age
