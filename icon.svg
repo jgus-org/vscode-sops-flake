@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="SOPS Safe logo">
+<title>SOPS Safe</title>
+<g id="feet">
+<rect x="68" y="456" width="52" height="32" rx="12" fill="#1f3f5f"/>
+<rect x="392" y="456" width="52" height="32" rx="12" fill="#1f3f5f"/>
+</g>
+<g id="case"><rect x="24" y="24" width="464" height="444" rx="40" fill="#1f3f5f"/></g>
+<g id="door"><rect x="48" y="48" width="416" height="396" rx="22" fill="none" stroke="#FFFFFF" stroke-width="8"/></g>
+<g id="dial"><circle cx="256" cy="246" r="172" fill="none" stroke="#FFFFFF" stroke-width="16"/><circle cx="256" cy="246" r="118" fill="none" stroke="#FFFFFF" stroke-width="11"/></g>
+<g id="ticks" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round">
+<path d="M 324.25 127.788 L 331.75 114.797"/>
+<path d="M 374.212 177.75 L 387.203 170.25"/>
+<path d="M 392.5 246 L 407.5 246"/>
+<path d="M 374.212 314.25 L 387.203 321.75"/>
+<path d="M 324.25 364.212 L 331.75 377.203"/>
+<path d="M 256 382.5 L 256 397.5"/>
+<path d="M 187.75 364.212 L 180.25 377.203"/>
+<path d="M 137.788 314.25 L 124.797 321.75"/>
+<path d="M 119.5 246 L 104.5 246"/>
+<path d="M 137.788 177.75 L 124.797 170.25"/>
+<path d="M 187.75 127.788 L 180.25 114.797"/>
+</g>
+<path id="marker" d="M 239.708 92.467 Q 238 90 241 90 L 271 90 Q 274 90 272.292 92.467 L 257.708 113.533 Q 256 116 254.292 113.533 Z" fill="#ff8800"/>
+<g id="document" transform="translate(256 246) scale(1.36)">
+<path fill="#FFFFFF" d="M -38 -60 H 18 V -32 Q 18 -22 28 -22 H 50 V 48 Q 50 60 38 60 H -38 Q -50 60 -50 48 V -48 Q -50 -60 -38 -60 Z"/>
+<path id="fold" fill="#FFFFFF" d="M 27 -58 L 48 -31 H 27 Z"/>
+<g id="yaml">
+<g id="yaml-root"><path d="M -31 -34 H -9" fill="none" stroke="#ff8800" stroke-width="8" stroke-linecap="round"/><circle cx="1" cy="-37.5" r="2" fill="#ff8800"/><circle cx="1" cy="-30.5" r="2" fill="#ff8800"/></g>
+<g id="yaml-key-value"><path d="M -21 -15 H -3" fill="none" stroke="#ff8800" stroke-width="8" stroke-linecap="round"/><circle cx="7" cy="-18.5" r="2" fill="#ff8800"/><circle cx="7" cy="-11.5" r="2" fill="#ff8800"/><path d="M 17 -15 H 32" fill="none" stroke="#1f3f5f" stroke-width="8" stroke-linecap="round"/></g>
+<g id="yaml-list-key"><path d="M -21 4 H -3" fill="none" stroke="#ff8800" stroke-width="8" stroke-linecap="round"/><circle cx="7" cy="0.5" r="2" fill="#ff8800"/><circle cx="7" cy="7.5" r="2" fill="#ff8800"/></g>
+<g id="yaml-list-items">
+<path d="M -11 23 H -5" fill="none" stroke="#ff8800" stroke-width="8" stroke-linecap="round"/>
+<path d="M 9 23 H 32" fill="none" stroke="#1f3f5f" stroke-width="8" stroke-linecap="round"/>
+<path d="M -11 42 H -5" fill="none" stroke="#ff8800" stroke-width="8" stroke-linecap="round"/>
+<path d="M 9 42 H 26" fill="none" stroke="#1f3f5f" stroke-width="8" stroke-linecap="round"/>
+</g></g>
+</g>
+<g id="hinges">
+<rect x="33" y="99" width="30" height="74" rx="12" fill="#1f3f5f" stroke="#1f3f5f" stroke-width="14"/>
+<rect x="33" y="99" width="30" height="74" rx="12" fill="#1f3f5f" stroke="#FFFFFF" stroke-width="6"/>
+<rect x="33" y="319" width="30" height="74" rx="12" fill="#1f3f5f" stroke="#1f3f5f" stroke-width="14"/>
+<rect x="33" y="319" width="30" height="74" rx="12" fill="#1f3f5f" stroke="#FFFFFF" stroke-width="6"/>
+</g>
+</svg>
