@@ -1,5 +1,5 @@
 {
-  "name": "vscode-sops",
+  "name": "sops-safe",
   "displayName": "SOPS Safe",
   "description": "SOPS editing that keeps plaintext out of workspace files agents can ingest, with verified private tmpfs and atomic saves.",
   "version": "0.1.0",
@@ -31,10 +31,10 @@
   },
   "activationEvents": [
     "onStartupFinished",
-    "onCommand:vscode-sops.openDecrypted",
-    "onCommand:vscode-sops.encryptInPlace",
-    "onCommand:vscode-sops.checkSecurityPosture",
-    "onCommand:vscode-sops.resetTrustedExtensions",
+    "onCommand:sops-safe.openDecrypted",
+    "onCommand:sops-safe.encryptInPlace",
+    "onCommand:sops-safe.checkSecurityPosture",
+    "onCommand:sops-safe.resetTrustedExtensions",
     "onFileSystem:sops"
   ],
   "main": "./dist/extension.js",
@@ -55,36 +55,36 @@
   "contributes": {
     "commands": [
       {
-        "command": "vscode-sops.openDecrypted",
+        "command": "sops-safe.openDecrypted",
         "title": "SOPS: Open Decrypted"
       },
       {
-        "command": "vscode-sops.encryptInPlace",
+        "command": "sops-safe.encryptInPlace",
         "title": "SOPS: Encrypt in Place"
       },
       {
-        "command": "vscode-sops.checkSecurityPosture",
+        "command": "sops-safe.checkSecurityPosture",
         "title": "SOPS: Check Security Posture"
       },
       {
-        "command": "vscode-sops.resetTrustedExtensions",
+        "command": "sops-safe.resetTrustedExtensions",
         "title": "SOPS: Reset Trusted Extensions"
       }
     ],
     "configuration": {
       "title": "SOPS Safe",
       "properties": {
-        "vscode-sops.sopsPath": {
+        "sops-safe.sopsPath": {
           "type": "string",
           "default": "sops",
           "description": "SOPS executable used for detection, decryption, and encryption."
         },
-        "vscode-sops.runtimeDirectory": {
+        "sops-safe.runtimeDirectory": {
           "type": "string",
           "default": "",
-          "description": "Private extension runtime directory beneath XDG_RUNTIME_DIR. The default is $XDG_RUNTIME_DIR/vscode-sops."
+          "description": "Private extension runtime directory beneath XDG_RUNTIME_DIR. The default is $XDG_RUNTIME_DIR/sops-safe."
         },
-        "vscode-sops.trustedExtensions": {
+        "sops-safe.trustedExtensions": {
           "type": "array",
           "scope": "machine",
           "items": {
@@ -100,7 +100,7 @@
     "build": "node esbuild.mjs",
     "build:test": "tsc --project tsconfig.test.json",
     "check": "tsc --noEmit",
-    "package": "npm run build && vsce package --allow-missing-repository --out vscode-sops-${npm_package_version}.vsix",
+    "package": "npm run build && vsce package --allow-missing-repository --out sops-safe-${npm_package_version}.vsix",
     "test": "npm run check && npm run build:test && node --test build-test/test/*.test.js"
   },
   "devDependencies": {

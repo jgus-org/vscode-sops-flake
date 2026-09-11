@@ -16,20 +16,20 @@ import {
 
 test("backup storage is derived for desktop VS Code and code-server", () => {
   assert.equal(
-    backupDirectoryFromGlobalStorage("/home/josh/.config/Code/User/globalStorage/jgus.vscode-sops"),
+    backupDirectoryFromGlobalStorage("/home/josh/.config/Code/User/globalStorage/jgus.sops-safe"),
     "/home/josh/.config/Code/Backups"
   );
   assert.equal(
-    backupDirectoryFromGlobalStorage("/home/josh/.local/share/code-server/User/globalStorage/jgus.vscode-sops"),
+    backupDirectoryFromGlobalStorage("/home/josh/.local/share/code-server/User/globalStorage/jgus.sops-safe"),
     "/home/josh/.local/share/code-server/Backups"
   );
-  assert.equal(backupDirectoryFromGlobalStorage("/unexpected/storage/jgus.vscode-sops"), undefined);
+  assert.equal(backupDirectoryFromGlobalStorage("/unexpected/storage/jgus.sops-safe"), undefined);
 });
 
 test("a private tmpfs backup directory is safe and a public one is unsafe", async () => {
-  const rootPath = await mkdtemp("/dev/shm/vscode-sops-posture-");
+  const rootPath = await mkdtemp("/dev/shm/sops-safe-posture-");
   const backupPath = join(rootPath, "Code", "Backups");
-  const globalStoragePath = join(rootPath, "Code", "User", "globalStorage", "jgus.vscode-sops");
+  const globalStoragePath = join(rootPath, "Code", "User", "globalStorage", "jgus.sops-safe");
   try {
     await mkdir(backupPath, { recursive: true, mode: 0o700 });
     await chmod(backupPath, 0o700);
@@ -46,18 +46,18 @@ test("a private tmpfs backup directory is safe and a public one is unsafe", asyn
 });
 
 test("a non-local backup storage URI is unverifiable", async () => {
-  assert.equal((await inspectBackupStorage("untitled", "/User/globalStorage/jgus.vscode-sops")).status, "unverifiable");
-  assert.equal((await inspectBackupStorage("file", "/unexpected/storage/jgus.vscode-sops")).status, "unverifiable");
+  assert.equal((await inspectBackupStorage("untitled", "/User/globalStorage/jgus.sops-safe")).status, "unverifiable");
+  assert.equal((await inspectBackupStorage("file", "/unexpected/storage/jgus.sops-safe")).status, "unverifiable");
 });
 
 test("built-in, current, and explicitly trusted extensions are accepted", () => {
   const finding = inspectExtensionHost(
     "/nix/store/vscode/resources/app",
-    "jgus.vscode-sops",
+    "jgus.sops-safe",
     ["trusted.extension"],
     [
       { id: "vscode.json", extensionPath: "/nix/store/vscode/resources/app/extensions/json" },
-      { id: "jgus.vscode-sops", extensionPath: "/nix/store/vscode-sops" },
+      { id: "jgus.sops-safe", extensionPath: "/nix/store/sops-safe" },
       { id: "trusted.extension", extensionPath: "/home/josh/.vscode/extensions/trusted.extension" }
     ]
   );
@@ -68,7 +68,7 @@ test("built-in, current, and explicitly trusted extensions are accepted", () => 
 test("non-built-in extensions outside the trusted set are unsafe", () => {
   const finding = inspectExtensionHost(
     "/nix/store/vscode/resources/app",
-    "jgus.vscode-sops",
+    "jgus.sops-safe",
     [],
     [
       { id: "vscode.json", extensionPath: "/nix/store/vscode/resources/app/extensions/json" },
@@ -84,7 +84,7 @@ test("non-built-in extensions outside the trusted set are unsafe", () => {
 test("invalid extension locations are unverifiable", () => {
   const finding = inspectExtensionHost(
     "/nix/store/vscode/resources/app",
-    "jgus.vscode-sops",
+    "jgus.sops-safe",
     [],
     [{ id: "unknown.extension", extensionPath: "relative/path" }]
   );
@@ -168,9 +168,9 @@ test("trusted extensions are machine-scoped and resettable from the command pale
     };
   };
 
-  assert.equal(packageJson.contributes.configuration.properties["vscode-sops.trustedExtensions"]?.scope, "machine");
+  assert.equal(packageJson.contributes.configuration.properties["sops-safe.trustedExtensions"]?.scope, "machine");
   assert.equal(
-    packageJson.contributes.commands.some(({ command }) => command === "vscode-sops.resetTrustedExtensions"),
+    packageJson.contributes.commands.some(({ command }) => command === "sops-safe.resetTrustedExtensions"),
     true
   );
 });

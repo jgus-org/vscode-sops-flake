@@ -1,4 +1,6 @@
 node_modules/
+.direnv/
 dist/
 build-test/
 *.vsix
+result*

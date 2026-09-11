@@ -13,14 +13,14 @@
         version = "0.1.0";
 
         vsix = pkgs.stdenvNoCC.mkDerivation {
-          name = "vscode-sops-${version}.vsix";
-          pname = "vscode-sops-vsix";
+          name = "sops-safe-${version}.vsix";
+          pname = "sops-safe-vsix";
           inherit version;
           src = ./.;
 
           npmDeps = pkgs.fetchNpmDeps {
             src = ./.;
-            hash = "sha256-IyF3oFz7MQ9m6E4FQAhYZOivAH7ErK10P9h8no8Uqq0=";
+            hash = "sha256-DA+vqQKaNsIiAGlJ5u43X6YlvIMG817+EK6+bgXCqPo=";
           };
 
           nativeBuildInputs = with pkgs; [
@@ -50,17 +50,17 @@
           installPhase = ''
             runHook preInstall
             npm run package
-            cp "vscode-sops-${version}.vsix" "$out"
+            cp "sops-safe-${version}.vsix" "$out"
             runHook postInstall
           '';
         };
 
-        vscode-sops = pkgs.vscode-utils.buildVscodeExtension {
-          pname = "vscode-sops";
+        sops-safe = pkgs.vscode-utils.buildVscodeExtension {
+          pname = "sops-safe";
           inherit version;
           vscodeExtPublisher = "jgus";
-          vscodeExtName = "vscode-sops";
-          vscodeExtUniqueId = "jgus.vscode-sops";
+          vscodeExtName = "sops-safe";
+          vscodeExtUniqueId = "jgus.sops-safe";
           src = vsix;
           passthru = { inherit vsix; };
           meta = {
@@ -69,18 +69,33 @@
             platforms = pkgs.lib.platforms.linux;
           };
         };
+
+        ovsx = pkgs.writeShellApplication {
+          name = "ovsx";
+          runtimeInputs = [ pkgs.sops pkgs.nodejs ];
+          text = ''
+            set +x
+            open_vsx_pat=$(sops decrypt --extract '["open_vsx_pat"]' ${./secrets.yaml})
+            if [[ -z "$open_vsx_pat" ]]; then
+              echo "open_vsx_pat is empty" >&2
+              exit 1
+            fi
+            OVSX_PAT="$open_vsx_pat" exec npx --yes --ignore-scripts --package=ovsx@1.2.0 -- ovsx "$@"
+          '';
+        };
       in
       {
         packages = {
-          inherit vscode-sops vsix;
-          default = vscode-sops;
+          inherit sops-safe vsix;
+          default = sops-safe;
         };
-        checks.default = vscode-sops;
+        checks.default = sops-safe;
         devShells.default = pkgs.mkShellNoCC {
           packages = with pkgs; [
             age
             nodejs
             sops
+            ovsx
           ];
         };
       });

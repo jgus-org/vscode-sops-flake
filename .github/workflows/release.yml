@@ -48,12 +48,12 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          nix build .#vsix --no-write-lock-file --out-link "$RUNNER_TEMP/vscode-sops-vsix"
-          cp "$RUNNER_TEMP/vscode-sops-vsix" "vscode-sops-$VERSION.vsix"
+          nix build .#vsix --no-write-lock-file --out-link "$RUNNER_TEMP/sops-safe-vsix"
+          cp "$RUNNER_TEMP/sops-safe-vsix" "sops-safe-$VERSION.vsix"
 
       - name: Attach VSIX to release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           VERSION: ${{ steps.version.outputs.version }}
-        run: gh release upload "$RELEASE_TAG" "vscode-sops-$VERSION.vsix" --clobber
+        run: gh release upload "$RELEASE_TAG" "sops-safe-$VERSION.vsix" --clobber

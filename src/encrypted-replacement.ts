@@ -31,7 +31,7 @@ function candidatePathFor(sourcePath: string): string {
   const sourceName = basename(sourcePath);
   const sourceExtension = extname(sourceName);
   const sourceStem = sourceExtension.length === 0 ? sourceName : sourceName.slice(0, -sourceExtension.length);
-  return join(dirname(sourcePath), `.${sourceStem}.vscode-sops-${randomUUID()}${sourceExtension}`);
+  return join(dirname(sourcePath), `.${sourceStem}.sops-safe-${randomUUID()}${sourceExtension}`);
 }
 
 async function writeCandidate(filePath: string, content: Uint8Array, mode: number): Promise<void> {

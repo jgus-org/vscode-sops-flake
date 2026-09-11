@@ -107,7 +107,7 @@ export async function prepareRuntimeRoot(
   if (configuredRoot !== undefined && !isAbsolute(configuredRoot)) {
     throw new RuntimeSecurityError("The configured runtime directory is not an absolute path.");
   }
-  const rootPath = resolve(configuredRoot ?? join(runtimeDirectory, "vscode-sops"));
+  const rootPath = resolve(configuredRoot ?? join(runtimeDirectory, "sops-safe"));
   if (!isStrictDescendant(runtimeDirectory, rootPath)) {
     throw new RuntimeSecurityError("The extension runtime directory is not beneath XDG_RUNTIME_DIR.");
   }

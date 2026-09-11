@@ -39,16 +39,16 @@ class ExtensionController {
         isCaseSensitive: true,
         isReadonly: false
       }),
-      vscode.commands.registerCommand("vscode-sops.openDecrypted", async (uri?: vscode.Uri) => {
+      vscode.commands.registerCommand("sops-safe.openDecrypted", async (uri?: vscode.Uri) => {
         await this.openFromCommand(uri);
       }),
-      vscode.commands.registerCommand("vscode-sops.encryptInPlace", async (uri?: vscode.Uri) => {
+      vscode.commands.registerCommand("sops-safe.encryptInPlace", async (uri?: vscode.Uri) => {
         await this.encryptFromCommand(uri);
       }),
-      vscode.commands.registerCommand("vscode-sops.checkSecurityPosture", async () => {
+      vscode.commands.registerCommand("sops-safe.checkSecurityPosture", async () => {
         await this.showSecurityPosture();
       }),
-      vscode.commands.registerCommand("vscode-sops.resetTrustedExtensions", async () => {
+      vscode.commands.registerCommand("sops-safe.resetTrustedExtensions", async () => {
         await this.resetTrustedExtensions();
       }),
       vscode.workspace.onDidOpenTextDocument((document) => {
@@ -66,7 +66,7 @@ class ExtensionController {
         }
       }),
       vscode.workspace.onDidChangeConfiguration((event) => {
-        if (event.affectsConfiguration("vscode-sops.trustedExtensions")) {
+        if (event.affectsConfiguration("sops-safe.trustedExtensions")) {
           this.postureWarning.resetBoundary("extension-host");
           if (this.sourceSessions.size > 0) {
             void this.warnAboutSecurityPosture();
@@ -88,13 +88,13 @@ class ExtensionController {
   }
 
   private configuredSops(): SopsClient {
-    const executable = vscode.workspace.getConfiguration("vscode-sops").get<string>("sopsPath", "sops");
+    const executable = vscode.workspace.getConfiguration("sops-safe").get<string>("sopsPath", "sops");
     return new SopsClient(executable);
   }
 
   private runtimeRootPath(): Promise<string> {
     this.runtimeRoot ??= prepareRuntimeRoot(
-      vscode.workspace.getConfiguration("vscode-sops").get<string>("runtimeDirectory", "").trim() || undefined
+      vscode.workspace.getConfiguration("sops-safe").get<string>("runtimeDirectory", "").trim() || undefined
     );
     return this.runtimeRoot;
   }
@@ -383,7 +383,7 @@ class ExtensionController {
 
   private configuredTrustedExtensionIds(): string[] {
     return extensionIdsFromSetting(
-      vscode.workspace.getConfiguration("vscode-sops").get<unknown>("trustedExtensions")
+      vscode.workspace.getConfiguration("sops-safe").get<unknown>("trustedExtensions")
     );
   }
 
@@ -404,14 +404,14 @@ class ExtensionController {
   }
 
   private async trustExtensions(extensionIds: readonly string[]): Promise<void> {
-    const configuration = vscode.workspace.getConfiguration("vscode-sops");
+    const configuration = vscode.workspace.getConfiguration("sops-safe");
     const trusted = mergeExtensionIds(this.configuredTrustedExtensionIds(), extensionIds);
     await configuration.update("trustedExtensions", trusted, vscode.ConfigurationTarget.Global);
   }
 
   private async resetTrustedExtensions(): Promise<void> {
     await vscode.workspace
-      .getConfiguration("vscode-sops")
+      .getConfiguration("sops-safe")
       .update("trustedExtensions", undefined, vscode.ConfigurationTarget.Global);
     this.postureWarning.resetBoundary("extension-host");
     await vscode.window.showInformationMessage("The SOPS trusted-extension setting was reset.");
