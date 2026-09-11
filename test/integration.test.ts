@@ -48,7 +48,7 @@ async function createFixture(
   matchingCreationRule = true,
   sourceRelativePath = "secret.yaml"
 ): Promise<Fixture> {
-  const testRoot = await mkdtemp(join(tmpdir(), "vscode-sops-test-"));
+  const testRoot = await mkdtemp(join(tmpdir(), "sops-safe-test-"));
   await chmod(testRoot, 0o700);
   const workspacePath = join(testRoot, "workspace");
   await mkdir(workspacePath, 0o700);
@@ -88,7 +88,7 @@ async function createFixture(
 }
 
 function candidateEntries(entries: readonly string[]): string[] {
-  return entries.filter((name) => name.includes(".vscode-sops-"));
+  return entries.filter((name) => name.includes(".sops-safe-"));
 }
 
 async function disposeFixture(fixture: Fixture): Promise<void> {
@@ -124,7 +124,7 @@ for (const postQuantum of [false, true]) {
       assert.equal((await stat(fixture.sourcePath)).mode & 0o777, 0o640);
 
       const workspaceEntries = await readdir(fixture.workspacePath);
-      assert.equal(workspaceEntries.some((name) => name.includes(".vscode-sops-")), false);
+      assert.equal(workspaceEntries.some((name) => name.includes(".sops-safe-")), false);
       for (const name of workspaceEntries) {
         assert.equal((await readFile(join(fixture.workspacePath, name))).includes(updatedPlaintext), false);
       }

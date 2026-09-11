@@ -73,8 +73,6 @@
       {
         packages = {
           inherit sops-safe vsix;
-          # Preserve the output consumed by existing flake users.
-          vscode-sops = sops-safe;
           default = sops-safe;
         };
         checks.default = sops-safe;

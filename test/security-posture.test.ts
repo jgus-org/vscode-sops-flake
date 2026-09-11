@@ -27,7 +27,7 @@ test("backup storage is derived for desktop VS Code and code-server", () => {
 });
 
 test("a private tmpfs backup directory is safe and a public one is unsafe", async () => {
-  const rootPath = await mkdtemp("/dev/shm/vscode-sops-posture-");
+  const rootPath = await mkdtemp("/dev/shm/sops-safe-posture-");
   const backupPath = join(rootPath, "Code", "Backups");
   const globalStoragePath = join(rootPath, "Code", "User", "globalStorage", "jgus.sops-safe");
   try {
@@ -168,9 +168,9 @@ test("trusted extensions are machine-scoped and resettable from the command pale
     };
   };
 
-  assert.equal(packageJson.contributes.configuration.properties["vscode-sops.trustedExtensions"]?.scope, "machine");
+  assert.equal(packageJson.contributes.configuration.properties["sops-safe.trustedExtensions"]?.scope, "machine");
   assert.equal(
-    packageJson.contributes.commands.some(({ command }) => command === "vscode-sops.resetTrustedExtensions"),
+    packageJson.contributes.commands.some(({ command }) => command === "sops-safe.resetTrustedExtensions"),
     true
   );
 });

@@ -53,7 +53,7 @@ Run **SOPS: Check Security Posture** at any time. SOPS Safe reports two boundari
 - whether VS Code's `Backups` directory is a private tmpfs;
 - whether every enabled, non-built-in extension sharing the extension host has been explicitly trusted.
 
-**Trust Current Extensions** records the reported extension IDs in the machine-local `vscode-sops.trustedExtensions` setting. Newly installed extensions warn independently. **SOPS: Reset Trusted Extensions** clears that decision.
+**Trust Current Extensions** records the reported extension IDs in the machine-local `sops-safe.trustedExtensions` setting. Newly installed extensions warn independently. **SOPS: Reset Trusted Extensions** clears that decision.
 
 This is exposure reduction, not a sandbox. VS Code, built-in extensions, extensions you trust, the operating system, debuggers, screen capture, and the clipboard remain part of your security boundary.
 
@@ -61,7 +61,7 @@ This is exposure reduction, not a sandbox. VS Code, built-in extensions, extensi
 
 - Linux with a private tmpfs-backed `$XDG_RUNTIME_DIR`
 - VS Code 1.85 or newer
-- [SOPS](https://github.com/getsops/sops) available on `PATH`, or configured with `vscode-sops.sopsPath`
+- [SOPS](https://github.com/getsops/sops) available on `PATH`, or configured with `sops-safe.sopsPath`
 - a trusted, local workspace
 - working credentials for the recipients already in the file, or matching `.sops.yaml` creation rules when encrypting plaintext
 
@@ -80,17 +80,15 @@ SOPS Safe deliberately does not support untrusted workspaces, virtual workspaces
 
 | Setting | Default | Purpose |
 |---|---|---|
-| `vscode-sops.sopsPath` | `sops` | SOPS executable used for detection, decryption, and encryption |
-| `vscode-sops.runtimeDirectory` | `$XDG_RUNTIME_DIR/vscode-sops` | Private runtime directory; must remain beneath `$XDG_RUNTIME_DIR` |
-| `vscode-sops.trustedExtensions` | `[]` | Machine-local IDs allowed to share the extension host with decrypted documents |
+| `sops-safe.sopsPath` | `sops` | SOPS executable used for detection, decryption, and encryption |
+| `sops-safe.runtimeDirectory` | `$XDG_RUNTIME_DIR/sops-safe` | Private runtime directory; must remain beneath `$XDG_RUNTIME_DIR` |
+| `sops-safe.trustedExtensions` | `[]` | Machine-local IDs allowed to share the extension host with decrypted documents |
 
 ## Installation
 
-SOPS Safe uses the extension ID `jgus.sops-safe`. If you previously installed `jgus.vscode-sops`, including through Nix, remove the old extension when switching to SOPS Safe; the new ID is a separate installation, and running both causes command and filesystem-provider conflicts. For desktop VS Code installations made from a VSIX, including Home Manager VSIX installs, run `code --uninstall-extension jgus.vscode-sops` and reload VS Code after switching. Existing `vscode-sops.*` settings and command IDs, including custom keybindings, remain valid.
-
-Nix users can select `packages.<system>.sops-safe`; `packages.<system>.vscode-sops` remains an alias for existing consumers. The alias points to the new extension ID and does not remove an old installation.
-
 Download `sops-safe-<version>.vsix` from the assets on the [GitHub releases page](https://github.com/jgus-org/vscode-sops-flake/releases).
+
+Nix users can select `packages.<system>.sops-safe`.
 
 - **VS Code:** Run **Extensions: Install from VSIX** from the Command Palette and select the downloaded file.
 - **code-server:** Copy the downloaded file to the code-server host and run `code-server --install-extension /path/to/sops-safe-<version>.vsix` there.
