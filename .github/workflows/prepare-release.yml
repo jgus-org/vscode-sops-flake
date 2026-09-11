@@ -1,0 +1,82 @@
+name: Prepare release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Stable version to release (for example, 0.1.1)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: prepare-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
+    env:
+      VERSION: ${{ inputs.version }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Check out main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@1ca7d21a94afc7c957383a2d217460d980de4934 # v31.10.1
+
+      - name: Stamp version
+        run: nix run .#version-stamp --no-write-lock-file -- "$VERSION"
+
+      - name: Check release availability
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          refs=$(git ls-remote origin "refs/heads/release/v$VERSION" "refs/tags/v$VERSION")
+          if [[ -n "$refs" ]]; then
+            echo "A branch or tag for v$VERSION already exists." >&2
+            exit 1
+          fi
+          open_releases=$(gh pr list --base main --state open --limit 1000 --json headRefName \
+            --jq '[.[] | select(.headRefName | startswith("release/v"))] | length')
+          if [[ "$open_releases" != 0 ]]; then
+            echo 'Merge or close the existing release PR before preparing another release.' >&2
+            exit 1
+          fi
+
+      - name: Build and test VSIX
+        run: nix build .#vsix --no-write-lock-file --no-link
+
+      - name: Open release PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="release/v$VERSION"
+          git switch -c "$branch"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package.json package-lock.json
+          git commit -m "Release v$VERSION"
+          gh auth setup-git
+          git push origin "HEAD:refs/heads/$branch"
+          cat > "$RUNNER_TEMP/release-pr.md" <<EOF
+          Bump SOPS Safe to $VERSION. Nix reads the version from package.json.
+
+          Validation: nix build .#vsix passed, including the extension tests.
+
+          Merging this PR builds the merged commit and creates tag/release v$VERSION with its VSIX. Marketplace publication remains a separate manual action.
+          EOF
+          pr_url=$(gh pr create --base main --head "$branch" --title "Release v$VERSION" \
+            --body-file "$RUNNER_TEMP/release-pr.md")
+          printf 'Review and merge the release PR: %s\n' "$pr_url" >> "$GITHUB_STEP_SUMMARY"

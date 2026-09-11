@@ -10,7 +10,7 @@
     flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" ] (system:
       let
         pkgs = import nixpkgs { inherit system; };
-        version = "0.1.0";
+        version = (builtins.fromJSON (builtins.readFile ./package.json)).version;
 
         vsix = pkgs.stdenvNoCC.mkDerivation {
           name = "sops-safe-${version}.vsix";
@@ -18,15 +18,12 @@
           inherit version;
           src = ./.;
 
-          npmDeps = pkgs.fetchNpmDeps {
-            src = ./.;
-            hash = "sha256-DA+vqQKaNsIiAGlJ5u43X6YlvIMG817+EK6+bgXCqPo=";
-          };
+          npmDeps = pkgs.importNpmLock { npmRoot = ./.; };
 
           nativeBuildInputs = with pkgs; [
             age
             nodejs
-            npmHooks.npmConfigHook
+            importNpmLock.npmConfigHook
             sops
           ];
 
@@ -70,6 +67,12 @@
           };
         };
 
+        version-stamp = pkgs.writeShellApplication {
+          name = "version-stamp";
+          runtimeInputs = [ pkgs.nodejs pkgs.jq pkgs.coreutils ];
+          text = builtins.readFile ./scripts/version-stamp.sh;
+        };
+
         ovsx = pkgs.writeShellApplication {
           name = "ovsx";
           runtimeInputs = [ pkgs.sops pkgs.nodejs ];
@@ -90,12 +93,17 @@
           default = sops-safe;
         };
         checks.default = sops-safe;
+        apps.version-stamp = {
+          type = "app";
+          program = "${version-stamp}/bin/version-stamp";
+        };
         devShells.default = pkgs.mkShellNoCC {
           packages = with pkgs; [
             age
             nodejs
             sops
             ovsx
+            version-stamp
           ];
         };
       });

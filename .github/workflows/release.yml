@@ -3,27 +3,37 @@ name: Release VSIX
 on:
   release:
     types: [published]
+  pull_request:
+    branches: [main]
+    types: [closed]
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.event.release.id }}
+  group: release-vsix
   cancel-in-progress: false
 
 jobs:
   release:
+    if: >-
+      github.event_name == 'release' ||
+      (github.event.pull_request.merged == true &&
+       github.event.pull_request.head.repo.full_name == github.repository &&
+       startsWith(github.event.pull_request.head.ref, 'release/v'))
     runs-on: ubuntu-24.04
     defaults:
       run:
         shell: bash
     env:
       RELEASE_TAG: ${{ github.event.release.tag_name }}
+      RELEASE_BRANCH: ${{ github.event.pull_request.head.ref }}
+      MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
     steps:
-      - name: Check out release tag
+      - name: Check out release commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: refs/tags/${{ github.event.release.tag_name }}
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.merge_commit_sha || format('refs/tags/{0}', github.event.release.tag_name) }}
           persist-credentials: false
 
       - name: Install Nix
@@ -33,16 +43,34 @@ jobs:
         id: version
         run: |
           package_version=$(jq -er '.version' package.json)
-          if [[ "$RELEASE_TAG" != "v$package_version" ]]; then
-            printf 'Release tag must be v%s; received %s.\n' "$package_version" "$RELEASE_TAG" >&2
+          if [[ ! "$package_version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo 'Only stable MAJOR.MINOR.PATCH releases are supported.' >&2
             exit 1
           fi
-          flake_version=$(nix eval --raw .#packages.x86_64-linux.vsix.version --no-write-lock-file)
-          if [[ "$flake_version" != "$package_version" ]]; then
-            printf 'flake.nix version %s does not match package.json version %s.\n' "$flake_version" "$package_version" >&2
+          jq -e --arg version "$package_version" \
+            '.version == $version and .packages[""].version == $version' package-lock.json > /dev/null
+          tag="v$package_version"
+          if [[ "$GITHUB_EVENT_NAME" == pull_request ]]; then
+            if [[ "$RELEASE_BRANCH" != "release/$tag" || "$(git rev-parse HEAD)" != "$MERGE_SHA" ]]; then
+              echo 'Release branch/version or checked-out merge commit does not match.' >&2
+              exit 1
+            fi
+          elif [[ "$RELEASE_TAG" != "$tag" ]]; then
+            printf 'Release tag must be %s; received %s.\n' "$tag" "$RELEASE_TAG" >&2
             exit 1
           fi
-          printf 'version=%s\n' "$package_version" >> "$GITHUB_OUTPUT"
+          printf 'version=%s\ntag=%s\n' "$package_version" "$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Check tag availability
+        if: github.event_name == 'pull_request'
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          refs=$(git ls-remote origin "refs/tags/$TAG")
+          if [[ -n "$refs" ]]; then
+            echo "Tag $TAG already exists. Existing releases are never replaced by this action." >&2
+            exit 1
+          fi
 
       - name: Build and test VSIX
         env:
@@ -51,7 +79,25 @@ jobs:
           nix build .#vsix --no-write-lock-file --out-link "$RUNNER_TEMP/sops-safe-vsix"
           cp "$RUNNER_TEMP/sops-safe-vsix" "sops-safe-$VERSION.vsix"
 
-      - name: Attach VSIX to release
+      # GITHUB_TOKEN-created releases do not trigger release.published workflows.
+      # Build and attach the artifact here before publishing the GitHub release.
+      - name: Create tag and GitHub release
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          gh api --method POST "repos/$GH_REPO/git/refs" \
+            -f ref="refs/tags/$TAG" -f sha="$MERGE_SHA" > /dev/null
+          gh release create "$TAG" "sops-safe-$VERSION.vsix" \
+            --verify-tag --title "v$VERSION" --generate-notes --latest
+          printf 'Created %s. Run **Publish latest release** with mode **publish** to publish to both marketplaces.\n' \
+            "$TAG" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Attach VSIX to manually published release
+        if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
