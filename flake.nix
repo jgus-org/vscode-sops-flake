@@ -22,6 +22,7 @@
 
           nativeBuildInputs = with pkgs; [
             age
+            librsvg
             nodejs
             importNpmLock.npmConfigHook
             sops
@@ -100,6 +101,7 @@
         devShells.default = pkgs.mkShellNoCC {
           packages = with pkgs; [
             age
+            librsvg
             nodejs
             sops
             ovsx

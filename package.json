@@ -24,7 +24,7 @@
     "gitops",
     "security"
   ],
-  "icon": "icon.png",
+  "icon": "dist/icon.png",
   "galleryBanner": {
     "color": "#061b3a",
     "theme": "dark"
@@ -40,7 +40,6 @@
   "main": "./dist/extension.js",
   "files": [
     "dist",
-    "icon.png",
     "README.md",
     "LICENSE"
   ],
@@ -97,7 +96,7 @@
     }
   },
   "scripts": {
-    "build": "node esbuild.mjs",
+    "build": "node esbuild.mjs && rsvg-convert --width 512 --height 512 --output dist/icon.png icon.svg",
     "build:test": "tsc --project tsconfig.test.json",
     "check": "tsc --noEmit",
     "package": "npm run build && vsce package --allow-missing-repository --out sops-safe-${npm_package_version}.vsix",
