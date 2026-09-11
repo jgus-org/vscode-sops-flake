@@ -2,7 +2,7 @@
   "name": "sops-safe",
   "displayName": "SOPS Safe",
   "description": "SOPS editing that keeps plaintext out of workspace files agents can ingest, with verified private tmpfs and atomic saves.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "jgus",
   "license": "MIT",
   "repository": {
