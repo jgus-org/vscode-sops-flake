@@ -105,7 +105,7 @@ jobs:
           git push --atomic origin HEAD:refs/heads/main "refs/tags/$TAG"
           gh release create "$TAG" "sops-safe-$VERSION.vsix" \
             --verify-tag --title "v$VERSION" --generate-notes --latest
-          printf 'Created %s. Run **Publish latest release** with mode **publish** to publish to both marketplaces.\n' \
+          printf 'Created %s. Run **Publish to Visual Studio Marketplace** (mode **publish**) and/or **Publish to Open VSX Registry** for the desired destinations.\n' \
             "$TAG" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Attach VSIX to manually published release

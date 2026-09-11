@@ -1,0 +1,48 @@
+name: Publish to Open VSX Registry
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-open-vsx
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
+    env:
+      VSIX: sops-safe.vsix
+    steps:
+      - name: Check out publishing action
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Download and validate latest release
+        uses: ./.github/actions/download-release
+        with:
+          path: ${{ env.VSIX }}
+
+      - name: Publish to Open VSX Registry
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          if [[ -z "$OVSX_PAT" ]]; then
+            echo 'Set the OVSX_PAT Actions secret before publishing to Open VSX Registry.' >&2
+            exit 1
+          fi
+          npx --yes --ignore-scripts --package=ovsx@1.2.0 -- \
+            ovsx publish "$VSIX" --skip-duplicate
