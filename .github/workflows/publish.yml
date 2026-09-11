@@ -2,6 +2,15 @@ name: Publish latest release
 
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Check Microsoft identity, or publish the latest release
+        type: choice
+        required: true
+        default: check-auth
+        options:
+          - check-auth
+          - publish
 
 permissions:
   contents: read
@@ -14,6 +23,9 @@ jobs:
   publish:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
     defaults:
       run:
         shell: bash
@@ -21,12 +33,14 @@ jobs:
       VSIX: sops-safe.vsix
     steps:
       - name: Install Node.js
+        if: inputs.mode == 'publish'
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: '24'
           package-manager-cache: false
 
       - name: Download and validate latest release
+        if: inputs.mode == 'publish'
         id: package
         env:
           GH_TOKEN: ${{ github.token }}
@@ -57,19 +71,45 @@ jobs:
           PY
           printf 'Publishing **jgus.sops-safe %s** from release **%s**.\n' "$version" "$tag" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Publish to VS Code Marketplace
+      - name: Check Microsoft Entra configuration
         env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
         run: |
-          if [[ -z "$VSCE_PAT" ]]; then
-            echo 'Set the VSCE_PAT Actions secret before publishing to VS Code Marketplace.' >&2
+          if [[ -z "$AZURE_CLIENT_ID" || -z "$AZURE_TENANT_ID" ]]; then
+            echo 'Set the AZURE_CLIENT_ID and AZURE_TENANT_ID Actions variables for the federated publishing identity.' >&2
             exit 1
           fi
+
+      - name: Sign in to Microsoft Entra through GitHub OIDC
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
+
+      - name: Show Marketplace member ID
+        if: inputs.mode == 'check-auth'
+        run: |
+          profile_id=$(az rest \
+            --url https://app.vssps.visualstudio.com/_apis/profile/profiles/me \
+            --resource 499b84ac-1321-427f-aa17-267ca6975798 \
+            --query id --output tsv)
+          if [[ -z "$profile_id" || "$profile_id" == "null" ]]; then
+            echo 'Microsoft did not return a Marketplace member ID.' >&2
+            exit 1
+          fi
+          printf 'Marketplace member ID: %s\n' "$profile_id"
+          printf 'Marketplace member ID: %s\n\nAdd this ID to publisher **jgus** with the **Contributor** role. This check does not verify publisher permissions.\n' "$profile_id" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish to VS Code Marketplace
+        if: inputs.mode == 'publish'
+        run: |
           npx --yes --ignore-scripts --package=@vscode/vsce@3.9.2 -- \
-            vsce publish --packagePath "$VSIX" --skip-duplicate
+            vsce publish --azure-credential --packagePath "$VSIX" --skip-duplicate
 
       - name: Publish to Open VSX
-        if: ${{ !cancelled() && steps.package.outcome == 'success' }}
+        if: ${{ !cancelled() && inputs.mode == 'publish' && steps.package.outcome == 'success' }}
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
         run: |
