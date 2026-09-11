@@ -93,12 +93,6 @@ SOPS Safe deliberately does not support untrusted workspaces, virtual workspaces
   - **code-server:** Copy the downloaded file to the code-server host and run `code-server --install-extension /path/to/sops-safe-<version>.vsix` there.
 - **Nix:** Use this flake's `packages.<system>.sops-safe` extension package.
 
-## Building
-
-Run `nix build .#vsix` to build and test the extension package. For a local build, run `nix develop`, `npm ci --ignore-scripts`, then `npm run package`.
-
-Edit `icon.svg` to update the icon. The build uses `rsvg-convert` (provided by `librsvg` in the Nix build and development shell) to generate `dist/icon.png` at 512×512. The generated PNG is included in the VSIX because [VS Code does not accept SVG extension icons](https://code.visualstudio.com/api/working-with-extensions/publishing-extension). It stays in the ignored `dist/` directory and does not need to be committed.
-
 ## License
 
 MIT
