@@ -1,11 +1,14 @@
 name: Release VSIX
 
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Stable version to release (for example, 0.1.1)
+        required: true
+        type: string
   release:
     types: [published]
-  pull_request:
-    branches: [main]
-    types: [closed]
 
 permissions:
   contents: write
@@ -18,26 +21,28 @@ jobs:
   release:
     if: >-
       github.event_name == 'release' ||
-      (github.event.pull_request.merged == true &&
-       github.event.pull_request.head.repo.full_name == github.repository &&
-       startsWith(github.event.pull_request.head.ref, 'release/v'))
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-24.04
     defaults:
       run:
         shell: bash
     env:
       RELEASE_TAG: ${{ github.event.release.tag_name }}
-      RELEASE_BRANCH: ${{ github.event.pull_request.head.ref }}
-      MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
     steps:
       - name: Check out release commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.merge_commit_sha || format('refs/tags/{0}', github.event.release.tag_name) }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || format('refs/tags/{0}', github.event.release.tag_name) }}
           persist-credentials: false
 
       - name: Install Nix
         uses: cachix/install-nix-action@1ca7d21a94afc7c957383a2d217460d980de4934 # v31.10.1
+
+      - name: Stamp version
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          VERSION: ${{ inputs.version }}
+        run: nix run .#version-stamp --no-write-lock-file -- "$VERSION"
 
       - name: Validate release version
         id: version
@@ -50,19 +55,14 @@ jobs:
           jq -e --arg version "$package_version" \
             '.version == $version and .packages[""].version == $version' package-lock.json > /dev/null
           tag="v$package_version"
-          if [[ "$GITHUB_EVENT_NAME" == pull_request ]]; then
-            if [[ "$RELEASE_BRANCH" != "release/$tag" || "$(git rev-parse HEAD)" != "$MERGE_SHA" ]]; then
-              echo 'Release branch/version or checked-out merge commit does not match.' >&2
-              exit 1
-            fi
-          elif [[ "$RELEASE_TAG" != "$tag" ]]; then
+          if [[ "$GITHUB_EVENT_NAME" == release && "$RELEASE_TAG" != "$tag" ]]; then
             printf 'Release tag must be %s; received %s.\n' "$tag" "$RELEASE_TAG" >&2
             exit 1
           fi
           printf 'version=%s\ntag=%s\n' "$package_version" "$tag" >> "$GITHUB_OUTPUT"
 
       - name: Check tag availability
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'workflow_dispatch'
         env:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
@@ -71,6 +71,16 @@ jobs:
             echo "Tag $TAG already exists. Existing releases are never replaced by this action." >&2
             exit 1
           fi
+
+      - name: Commit version
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package.json package-lock.json
+          git commit -m "Release $TAG"
 
       - name: Build and test VSIX
         env:
@@ -82,15 +92,17 @@ jobs:
       # GITHUB_TOKEN-created releases do not trigger release.published workflows.
       # Build and attach the artifact here before publishing the GitHub release.
       - name: Create tag and GitHub release
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           VERSION: ${{ steps.version.outputs.version }}
           TAG: ${{ steps.version.outputs.tag }}
         run: |
-          gh api --method POST "repos/$GH_REPO/git/refs" \
-            -f ref="refs/tags/$TAG" -f sha="$MERGE_SHA" > /dev/null
+          git tag "$TAG"
+          gh auth setup-git
+          # Refuse both updates if main advanced or the tag was created during the build.
+          git push --atomic origin HEAD:refs/heads/main "refs/tags/$TAG"
           gh release create "$TAG" "sops-safe-$VERSION.vsix" \
             --verify-tag --title "v$VERSION" --generate-notes --latest
           printf 'Created %s. Run **Publish latest release** with mode **publish** to publish to both marketplaces.\n' \
