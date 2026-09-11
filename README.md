@@ -99,6 +99,35 @@ Run `direnv allow` with direnv's Nix integration enabled, or enter manually with
 
 Configure your SOPS identity normally, such as with `SOPS_AGE_KEY_FILE` or the default age key file. Each invocation decrypts `open_vsx_pat` from the encrypted `secrets.yaml` and passes it to `npx` through `OVSX_PAT`. Entering the shell does not decrypt or export the token. Failed decryption or an empty token stops the command.
 
+## Publishing releases
+
+The **Release VSIX** workflow builds and tests a GitHub release's tag, then attaches `sops-safe-<version>.vsix`. The **Publish latest release** workflow is started manually from **Actions → Publish latest release → Run workflow**, with `main` selected. It downloads the latest non-draft, non-prerelease GitHub release's VSIX, checks its identity and version, and publishes that same file to the VS Code Marketplace and Open VSX. Publishing a GitHub release alone does not publish to either marketplace.
+
+Before the first marketplace publication:
+
+1. Create or obtain publishing access to the `jgus` [VS Code Marketplace publisher](https://marketplace.visualstudio.com/manage/publishers/). Create an Azure DevOps PAT with **Marketplace (Manage)** scope and **All accessible organizations**, following the [VS Code publishing instructions](https://code.visualstudio.com/api/working-with-extensions/publishing-extension).
+2. Complete the [Open VSX publisher setup](https://github.com/eclipse-openvsx/openvsx/wiki/Publishing-Extensions), including its publisher agreement. If the `jgus` namespace does not exist yet, create it from the development shell with `ovsx create-namespace jgus`.
+3. Add repository Actions secrets named `VSCE_PAT` and `OVSX_PAT`. `VSCE_PAT` is the Azure DevOps token; `OVSX_PAT` is the Open VSX token already stored as `open_vsx_pat` in `secrets.yaml`.
+
+With GitHub CLI authenticated to manage this repository's secrets, run the following locally. The first command prompts for the VS Code token; the subshell sends the existing Open VSX token directly to GitHub through standard input:
+
+```bash
+gh secret set VSCE_PAT --repo jgus-org/vscode-sops-flake
+(
+  set +x
+  set -euo pipefail
+  token=$(sops decrypt --extract '["open_vsx_pat"]' secrets.yaml)
+  test -n "$token"
+  printf '%s' "$token" | gh secret set OVSX_PAT --repo jgus-org/vscode-sops-flake
+)
+```
+
+Each token is available only to its matching publishing step. The Actions workflow does not need your AGE private key. Microsoft has announced retirement of global Azure DevOps PATs on December 1, 2026; migrate VS Code publishing to [Microsoft Entra authentication](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace) before then.
+
+For each release, keep the versions in `package.json`, `package-lock.json`, and `flake.nix` in sync, updating the Nix npm dependency hash when needed. Publish a GitHub release tagged `v<version>`, wait for **Release VSIX** to finish successfully, then run **Publish latest release**. The existing `v0.1.0` release contains the old `vscode-sops` package; create a new release containing the rename before the first marketplace publication.
+
+Both publishing commands skip versions already present in their marketplace. If one fails, the other is still attempted; fix the failure and rerun the failed job. Each execution selects the latest release again, so check which release is latest before retrying.
+
 ## License
 
 MIT
