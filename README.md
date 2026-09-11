@@ -93,12 +93,6 @@ Nix users can select `packages.<system>.sops-safe`.
 - **VS Code:** Run **Extensions: Install from VSIX** from the Command Palette and select the downloaded file.
 - **code-server:** Copy the downloaded file to the code-server host and run `code-server --install-extension /path/to/sops-safe-<version>.vsix` there.
 
-## Development shell
-
-Run `direnv allow` with direnv's Nix integration enabled, or enter manually with `nix develop`. The shell provides `ovsx`, a Bash wrapper around `npx ovsx@1.2.0`; for example, `ovsx publish ./sops-safe-0.1.0.vsix`.
-
-Configure your SOPS identity normally, such as with `SOPS_AGE_KEY_FILE` or the default age key file. Each invocation decrypts `open_vsx_pat` from the encrypted `secrets.yaml` and passes it to `npx` through `OVSX_PAT`. Entering the shell does not decrypt or export the token. Failed decryption or an empty token stops the command.
-
 ## License
 
 MIT
