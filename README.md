@@ -86,12 +86,12 @@ SOPS Safe deliberately does not support untrusted workspaces, virtual workspaces
 
 ## Installation
 
-Download `sops-safe-<version>.vsix` from the assets on the [GitHub releases page](https://github.com/jgus-org/vscode-sops-flake/releases).
-
-Nix users can select `packages.<system>.sops-safe`.
-
-- **VS Code:** Run **Extensions: Install from VSIX** from the Command Palette and select the downloaded file.
-- **code-server:** Copy the downloaded file to the code-server host and run `code-server --install-extension /path/to/sops-safe-<version>.vsix` there.
+- **Visual Studio Marketplace (VS Code):** Install [SOPS Safe from Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=jgus.sops-safe).
+- **Open VSX Registry (code-server):** In code-server's Extensions view, search for `@id:jgus.sops-safe` and install [SOPS Safe](https://open-vsx.org/extension/jgus/sops-safe).
+- **GitHub releases:** Download `sops-safe-<version>.vsix` from the assets on the [GitHub releases page](https://github.com/jgus-org/vscode-sops-flake/releases).
+  - **VS Code:** Run **Extensions: Install from VSIX** from the Command Palette and select the downloaded file.
+  - **code-server:** Copy the downloaded file to the code-server host and run `code-server --install-extension /path/to/sops-safe-<version>.vsix` there.
+- **Nix:** Use this flake's `packages.<system>.sops-safe` extension package.
 
 ## License
 
