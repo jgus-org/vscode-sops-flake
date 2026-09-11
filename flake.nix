@@ -13,14 +13,14 @@
         version = "0.1.0";
 
         vsix = pkgs.stdenvNoCC.mkDerivation {
-          name = "safe-sops-${version}.vsix";
-          pname = "safe-sops-vsix";
+          name = "sops-safe-${version}.vsix";
+          pname = "sops-safe-vsix";
           inherit version;
           src = ./.;
 
           npmDeps = pkgs.fetchNpmDeps {
             src = ./.;
-            hash = "sha256-otfVaRwoBv8uE+XUUnHyGRJaBqc5/KdrkPHvq9Q5qk8=";
+            hash = "sha256-DA+vqQKaNsIiAGlJ5u43X6YlvIMG817+EK6+bgXCqPo=";
           };
 
           nativeBuildInputs = with pkgs; [
@@ -50,17 +50,17 @@
           installPhase = ''
             runHook preInstall
             npm run package
-            cp "safe-sops-${version}.vsix" "$out"
+            cp "sops-safe-${version}.vsix" "$out"
             runHook postInstall
           '';
         };
 
-        safe-sops = pkgs.vscode-utils.buildVscodeExtension {
-          pname = "safe-sops";
+        sops-safe = pkgs.vscode-utils.buildVscodeExtension {
+          pname = "sops-safe";
           inherit version;
           vscodeExtPublisher = "jgus";
-          vscodeExtName = "safe-sops";
-          vscodeExtUniqueId = "jgus.safe-sops";
+          vscodeExtName = "sops-safe";
+          vscodeExtUniqueId = "jgus.sops-safe";
           src = vsix;
           passthru = { inherit vsix; };
           meta = {
@@ -72,12 +72,12 @@
       in
       {
         packages = {
-          inherit safe-sops vsix;
+          inherit sops-safe vsix;
           # Preserve the output consumed by existing flake users.
-          vscode-sops = safe-sops;
-          default = safe-sops;
+          vscode-sops = sops-safe;
+          default = sops-safe;
         };
-        checks.default = safe-sops;
+        checks.default = sops-safe;
         devShells.default = pkgs.mkShellNoCC {
           packages = with pkgs; [
             age
