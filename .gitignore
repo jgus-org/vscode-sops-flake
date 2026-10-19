@@ -4,3 +4,6 @@ dist/
 build-test/
 *.vsix
 result*
+/result
+/result-*
+/pin.nix.new
