@@ -36,7 +36,7 @@ jobs:
           persist-credentials: false
 
       - name: Install Nix
-        uses: cachix/install-nix-action@1ca7d21a94afc7c957383a2d217460d980de4934 # v31.10.1
+        uses: cachix/install-nix-action@v31
 
       - name: Use the fleet Nix cache
         uses: jgus-org/flake-lib/.github/actions/fleet-nix-cache@v1
