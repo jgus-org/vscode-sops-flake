@@ -1,5 +1,9 @@
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
-import { isStrictDescendant, privateTmpfsDirectoryViolations, RuntimeSecurityError } from "./secure-runtime.js";
+import {
+  isStrictDescendant,
+  privateTmpfsDirectoryViolations,
+  RuntimeSecurityError,
+} from "./secure-runtime.js";
 
 export type SecurityStatus = "safe" | "unsafe" | "unverifiable";
 
@@ -25,7 +29,8 @@ export class SecurityWarningGate {
 
   takeUnreported(posture: SecurityPosture): SecurityPosture | undefined {
     const findings = posture.findings.filter(
-      (finding) => finding.status !== "safe" && !this.reported.has(this.key(finding))
+      (finding) =>
+        finding.status !== "safe" && !this.reported.has(this.key(finding)),
     );
     if (findings.length === 0) {
       return undefined;
@@ -61,15 +66,30 @@ export class SecurityWarningGate {
   }
 }
 
-export function normalizeExtensionIds(extensionIds: readonly string[]): string[] {
-  return [...new Set(extensionIds.map((id) => id.trim().toLowerCase()).filter((id) => id.length > 0))].sort();
+export function normalizeExtensionIds(
+  extensionIds: readonly string[],
+): string[] {
+  return [
+    ...new Set(
+      extensionIds
+        .map((id) => id.trim().toLowerCase())
+        .filter((id) => id.length > 0),
+    ),
+  ].sort();
 }
 
 export function extensionIdsFromSetting(value: unknown): string[] {
-  return normalizeExtensionIds(Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : []);
+  return normalizeExtensionIds(
+    Array.isArray(value)
+      ? value.filter((id): id is string => typeof id === "string")
+      : [],
+  );
 }
 
-export function mergeExtensionIds(current: readonly string[], additions: readonly string[]): string[] {
+export function mergeExtensionIds(
+  current: readonly string[],
+  additions: readonly string[],
+): string[] {
   return normalizeExtensionIds([...current, ...additions]);
 }
 
@@ -81,7 +101,9 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "an unknown error occurred";
 }
 
-export function backupDirectoryFromGlobalStorage(globalStoragePath: string): string | undefined {
+export function backupDirectoryFromGlobalStorage(
+  globalStoragePath: string,
+): string | undefined {
   if (!isAbsolute(globalStoragePath)) {
     return undefined;
   }
@@ -96,12 +118,18 @@ export function backupDirectoryFromGlobalStorage(globalStoragePath: string): str
   return join(dirname(userDirectory), "Backups");
 }
 
-export async function inspectBackupStorage(globalStorageScheme: string, globalStoragePath: string): Promise<SecurityFinding> {
-  if (globalStorageScheme !== "file" && globalStorageScheme !== "vscode-userdata") {
+export async function inspectBackupStorage(
+  globalStorageScheme: string,
+  globalStoragePath: string,
+): Promise<SecurityFinding> {
+  if (
+    globalStorageScheme !== "file" &&
+    globalStorageScheme !== "vscode-userdata"
+  ) {
     return {
       boundary: "backup-storage",
       status: "unverifiable",
-      detail: `VS Code backup storage cannot be derived from the ${globalStorageScheme} global-storage URI.`
+      detail: `VS Code backup storage cannot be derived from the ${globalStorageScheme} global-storage URI.`,
     };
   }
   const backupDirectory = backupDirectoryFromGlobalStorage(globalStoragePath);
@@ -109,7 +137,7 @@ export async function inspectBackupStorage(globalStorageScheme: string, globalSt
     return {
       boundary: "backup-storage",
       status: "unverifiable",
-      detail: `VS Code backup storage cannot be derived from ${globalStoragePath}.`
+      detail: `VS Code backup storage cannot be derived from ${globalStoragePath}.`,
     };
   }
   try {
@@ -118,19 +146,19 @@ export async function inspectBackupStorage(globalStorageScheme: string, globalSt
       return {
         boundary: "backup-storage",
         status: "unsafe",
-        detail: violations.join(" ")
+        detail: violations.join(" "),
       };
     }
     return {
       boundary: "backup-storage",
       status: "safe",
-      detail: `${backupDirectory} is a private tmpfs directory.`
+      detail: `${backupDirectory} is a private tmpfs directory.`,
     };
   } catch (error) {
     return {
       boundary: "backup-storage",
       status: error instanceof RuntimeSecurityError ? "unsafe" : "unverifiable",
-      detail: `VS Code backup storage at ${backupDirectory} could not be verified: ${errorMessage(error)}.`
+      detail: `VS Code backup storage at ${backupDirectory} could not be verified: ${errorMessage(error)}.`,
     };
   }
 }
@@ -139,18 +167,20 @@ export function inspectExtensionHost(
   appRoot: string,
   ownExtensionId: string,
   trustedExtensionIds: readonly string[],
-  installedExtensions: readonly InstalledExtension[]
+  installedExtensions: readonly InstalledExtension[],
 ): SecurityFinding {
   if (!isAbsolute(appRoot)) {
     return {
       boundary: "extension-host",
       status: "unverifiable",
       detail: `The VS Code application root is not absolute: ${appRoot}.`,
-      untrustedExtensionIds: []
+      untrustedExtensionIds: [],
     };
   }
   const builtInRoot = resolve(appRoot, "extensions");
-  const trusted = new Set([ownExtensionId, ...trustedExtensionIds].map((id) => id.toLowerCase()));
+  const trusted = new Set(
+    [ownExtensionId, ...trustedExtensionIds].map((id) => id.toLowerCase()),
+  );
   const untrusted: string[] = [];
   const unverifiable: string[] = [];
   for (const extension of installedExtensions) {
@@ -168,12 +198,18 @@ export function inspectExtensionHost(
   untrusted.sort();
   unverifiable.sort();
   if (untrusted.length > 0) {
-    const unknown = unverifiable.length > 0 ? ` Extension locations are also unverifiable for: ${unverifiable.join(", ")}.` : "";
+    const unknown =
+      unverifiable.length > 0
+        ? ` Extension locations are also unverifiable for: ${unverifiable.join(", ")}.`
+        : "";
     return {
       boundary: "extension-host",
       status: "unsafe",
       detail: `Non-built-in extensions outside the trusted set share decrypted documents: ${untrusted.join(", ")}.${unknown}`,
-      untrustedExtensionIds: normalizeExtensionIds([...untrusted, ...unverifiable])
+      untrustedExtensionIds: normalizeExtensionIds([
+        ...untrusted,
+        ...unverifiable,
+      ]),
     };
   }
   if (unverifiable.length > 0) {
@@ -181,18 +217,21 @@ export function inspectExtensionHost(
       boundary: "extension-host",
       status: "unverifiable",
       detail: `Extension locations are unverifiable for: ${unverifiable.join(", ")}.`,
-      untrustedExtensionIds: normalizeExtensionIds(unverifiable)
+      untrustedExtensionIds: normalizeExtensionIds(unverifiable),
     };
   }
   return {
     boundary: "extension-host",
     status: "safe",
-    detail: "Only built-in and explicitly trusted extensions share decrypted documents.",
-    untrustedExtensionIds: []
+    detail:
+      "Only built-in and explicitly trusted extensions share decrypted documents.",
+    untrustedExtensionIds: [],
   };
 }
 
-export function combineSecurityFindings(findings: readonly SecurityFinding[]): SecurityPosture {
+export function combineSecurityFindings(
+  findings: readonly SecurityFinding[],
+): SecurityPosture {
   const status = findings.some((finding) => finding.status === "unsafe")
     ? "unsafe"
     : findings.some((finding) => finding.status === "unverifiable")

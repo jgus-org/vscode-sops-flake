@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import {
   assertPrivateFile,
   assertPrivateTmpfsDirectory,
-  isStrictDescendant
+  isStrictDescendant,
 } from "./secure-runtime.js";
 
 async function main(): Promise<void> {
@@ -11,7 +11,12 @@ async function main(): Promise<void> {
   const plaintextPath = process.env.VSCODE_SOPS_PLAINTEXT;
   const markerPath = process.env.VSCODE_SOPS_EDIT_MARKER;
   const runtimePath = process.env.VSCODE_SOPS_RUNTIME;
-  if (targetPath === undefined || plaintextPath === undefined || markerPath === undefined || runtimePath === undefined) {
+  if (
+    targetPath === undefined ||
+    plaintextPath === undefined ||
+    markerPath === undefined ||
+    runtimePath === undefined
+  ) {
     throw new Error("The editor bridge environment is incomplete.");
   }
 
@@ -27,16 +32,21 @@ async function main(): Promise<void> {
   ) {
     throw new Error("The editor bridge path escaped its runtime directory.");
   }
-  if (await realpath(normalizedTarget) !== normalizedTarget) {
-    throw new Error("The SOPS editor target contains a symbolic-link path component.");
+  if ((await realpath(normalizedTarget)) !== normalizedTarget) {
+    throw new Error(
+      "The SOPS editor target contains a symbolic-link path component.",
+    );
   }
   await assertPrivateFile(normalizedTarget);
   await assertPrivateFile(normalizedPlaintext);
 
   const markerHandle = await open(
     normalizedMarker,
-    constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW,
-    0o600
+    constants.O_WRONLY |
+      constants.O_CREAT |
+      constants.O_EXCL |
+      constants.O_NOFOLLOW,
+    0o600,
   );
   try {
     await markerHandle.chmod(0o600);
@@ -45,8 +55,14 @@ async function main(): Promise<void> {
     await markerHandle.close();
   }
 
-  const plaintextHandle = await open(normalizedPlaintext, constants.O_RDONLY | constants.O_NOFOLLOW);
-  const targetHandle = await open(normalizedTarget, constants.O_WRONLY | constants.O_TRUNC | constants.O_NOFOLLOW);
+  const plaintextHandle = await open(
+    normalizedPlaintext,
+    constants.O_RDONLY | constants.O_NOFOLLOW,
+  );
+  const targetHandle = await open(
+    normalizedTarget,
+    constants.O_WRONLY | constants.O_TRUNC | constants.O_NOFOLLOW,
+  );
   try {
     const plaintext = await plaintextHandle.readFile();
     await targetHandle.chmod(0o600);

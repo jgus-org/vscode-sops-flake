@@ -3,7 +3,9 @@ import { EncryptedSession } from "./session.js";
 
 export class SopsFileSystemProvider implements vscode.FileSystemProvider {
   private readonly sessions = new Map<string, EncryptedSession>();
-  private readonly changes = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
+  private readonly changes = new vscode.EventEmitter<
+    vscode.FileChangeEvent[]
+  >();
 
   readonly onDidChangeFile = this.changes.event;
 
@@ -17,7 +19,7 @@ export class SopsFileSystemProvider implements vscode.FileSystemProvider {
       type: vscode.FileType.File,
       ctime: session.mtime,
       mtime: session.mtime,
-      size: session.size
+      size: session.size,
     };
   }
 
@@ -38,7 +40,11 @@ export class SopsFileSystemProvider implements vscode.FileSystemProvider {
       await this.session(uri).save(content);
       this.changes.fire([{ type: vscode.FileChangeType.Changed, uri }]);
     } catch (error) {
-      throw vscode.FileSystemError.Unavailable(error instanceof Error ? error.message : "The encrypted document could not be saved.");
+      throw vscode.FileSystemError.Unavailable(
+        error instanceof Error
+          ? error.message
+          : "The encrypted document could not be saved.",
+      );
     }
   }
 

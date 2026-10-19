@@ -12,7 +12,7 @@ if [[ ! -f package.json || ! -f package-lock.json ]]; then
   exit 1
 fi
 current=$(jq -er '.version' package.json)
-if [[ "$version" == "$current" || $(printf '%s\n' "$current" "$version" | sort -V | tail -n 1) != "$version" ]]; then
+if [[ $version == "$current" || $(printf '%s\n' "$current" "$version" | sort -V | tail -n 1) != "$version" ]]; then
   printf 'Version %s must be greater than the current version %s.\n' "$version" "$current" >&2
   exit 1
 fi

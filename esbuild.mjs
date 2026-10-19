@@ -6,7 +6,7 @@ const shared = {
   platform: "node",
   target: "node18",
   sourcemap: false,
-  logLevel: "info"
+  logLevel: "info",
 };
 
 await Promise.all([
@@ -14,11 +14,11 @@ await Promise.all([
     ...shared,
     entryPoints: ["src/extension.ts"],
     outfile: "dist/extension.js",
-    external: ["vscode"]
+    external: ["vscode"],
   }),
   build({
     ...shared,
     entryPoints: ["src/editor-bridge.ts"],
-    outfile: "dist/editor-bridge.js"
-  })
+    outfile: "dist/editor-bridge.js",
+  }),
 ]);

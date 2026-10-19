@@ -3,7 +3,10 @@ import { replaceWithEncryptedCandidate } from "./encrypted-replacement.js";
 import { SecureSessionDirectory } from "./secure-runtime.js";
 import { SopsClient } from "./sops-client.js";
 
-export { InvalidEncryptedCandidateError, StaleSourceError } from "./encrypted-replacement.js";
+export {
+  InvalidEncryptedCandidateError,
+  StaleSourceError,
+} from "./encrypted-replacement.js";
 
 export interface SaveTransactionOptions {
   sourcePath: string;
@@ -20,12 +23,16 @@ function quoteShellArgument(argument: string): string {
   return `'${argument.replaceAll("'", `'"'"'`)}'`;
 }
 
-export async function saveEncryptedFile(options: SaveTransactionOptions): Promise<Buffer> {
+export async function saveEncryptedFile(
+  options: SaveTransactionOptions,
+): Promise<Buffer> {
   const plaintextPath = await options.sessionDirectory.writePrivateFile(
     `plaintext-${randomUUID()}`,
-    options.plaintext
+    options.plaintext,
   );
-  const markerPath = options.sessionDirectory.filePath(`edited-${randomUUID()}`);
+  const markerPath = options.sessionDirectory.filePath(
+    `edited-${randomUUID()}`,
+  );
 
   try {
     return await replaceWithEncryptedCandidate({
@@ -43,15 +50,15 @@ export async function saveEncryptedFile(options: SaveTransactionOptions): Promis
           SOPS_EDITOR: `${quoteShellArgument(options.editorRuntimePath)} ${quoteShellArgument(options.editorBridgePath)}`,
           VSCODE_SOPS_PLAINTEXT: plaintextPath,
           VSCODE_SOPS_EDIT_MARKER: markerPath,
-          VSCODE_SOPS_RUNTIME: options.sessionDirectory.path
+          VSCODE_SOPS_RUNTIME: options.sessionDirectory.path,
         });
         await editingSops.edit(candidatePath);
-      }
+      },
     });
   } finally {
     await Promise.allSettled([
       options.sessionDirectory.removeFile(plaintextPath),
-      options.sessionDirectory.removeFile(markerPath)
+      options.sessionDirectory.removeFile(markerPath),
     ]);
   }
 }
