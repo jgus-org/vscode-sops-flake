@@ -4,13 +4,36 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     flake-utils.url = "github:numtide/flake-utils";
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" ] (system:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+      treefmt-nix,
+    }:
+    flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" ] (
+      system:
       let
         pkgs = import nixpkgs { inherit system; };
         version = (builtins.fromJSON (builtins.readFile ./package.json)).version;
+
+        treefmtEval = treefmt-nix.lib.evalModule pkgs {
+          projectRootFile = "flake.nix";
+          programs.nixfmt.enable = true;
+          programs.shfmt.enable = true;
+          programs.prettier.enable = true;
+          # Unscoped prettier claims *.yaml/*.json and would reflow secrets.yaml, package-lock.json and the release workflows.
+          programs.prettier.includes = [
+            "*.ts"
+            "*.mjs"
+          ];
+        };
 
         vsix = pkgs.stdenvNoCC.mkDerivation {
           name = "sops-safe-${version}.vsix";
@@ -70,13 +93,20 @@
 
         version-stamp = pkgs.writeShellApplication {
           name = "version-stamp";
-          runtimeInputs = [ pkgs.nodejs pkgs.jq pkgs.coreutils ];
+          runtimeInputs = [
+            pkgs.nodejs
+            pkgs.jq
+            pkgs.coreutils
+          ];
           text = builtins.readFile ./scripts/version-stamp.sh;
         };
 
         ovsx = pkgs.writeShellApplication {
           name = "ovsx";
-          runtimeInputs = [ pkgs.sops pkgs.nodejs ];
+          runtimeInputs = [
+            pkgs.sops
+            pkgs.nodejs
+          ];
           text = ''
             set +x
             open_vsx_pat=$(sops decrypt --extract '["open_vsx_pat"]' ${./secrets.yaml})
@@ -93,7 +123,12 @@
           inherit sops-safe vsix;
           default = sops-safe;
         };
-        checks.default = sops-safe;
+
+        formatter = treefmtEval.config.build.wrapper;
+        checks = {
+          default = sops-safe;
+          formatting = treefmtEval.config.build.check self;
+        };
         apps.version-stamp = {
           type = "app";
           program = "${version-stamp}/bin/version-stamp";
@@ -108,5 +143,6 @@
             version-stamp
           ];
         };
-      });
+      }
+    );
 }

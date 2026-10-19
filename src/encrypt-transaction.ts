@@ -9,9 +9,12 @@ export class AlreadyEncryptedSourceError extends Error {
   }
 }
 
-export async function encryptPlaintextFile(sourcePath: string, sops: SopsClient): Promise<Buffer> {
+export async function encryptPlaintextFile(
+  sourcePath: string,
+  sops: SopsClient,
+): Promise<Buffer> {
   const source = await readFileSnapshot(sourcePath);
-  if (await sops.fileStatus(sourcePath) === "encrypted") {
+  if ((await sops.fileStatus(sourcePath)) === "encrypted") {
     throw new AlreadyEncryptedSourceError();
   }
   const ciphertext = await sops.encrypt(sourcePath, source.content);
@@ -20,6 +23,6 @@ export async function encryptPlaintextFile(sourcePath: string, sops: SopsClient)
     sourceMode: source.mode,
     baseContent: source.content,
     candidateContent: ciphertext,
-    sops
+    sops,
   });
 }

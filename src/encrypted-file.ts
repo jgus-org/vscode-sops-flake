@@ -17,8 +17,13 @@ export class SourceFileError extends Error {
   }
 }
 
-export async function readFileSnapshot(filePath: string): Promise<FileSnapshot> {
-  const handle = await open(filePath, constants.O_RDONLY | constants.O_NOFOLLOW);
+export async function readFileSnapshot(
+  filePath: string,
+): Promise<FileSnapshot> {
+  const handle = await open(
+    filePath,
+    constants.O_RDONLY | constants.O_NOFOLLOW,
+  );
   try {
     const before = await handle.stat();
     if (!before.isFile()) {
@@ -26,7 +31,11 @@ export async function readFileSnapshot(filePath: string): Promise<FileSnapshot> 
     }
     const content = await handle.readFile();
     const after = await handle.stat();
-    if (before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs) {
+    if (
+      before.ino !== after.ino ||
+      before.size !== after.size ||
+      before.mtimeMs !== after.mtimeMs
+    ) {
       throw new SourceFileError("The source changed while it was being read.");
     }
     return { content, mode: before.mode & 0o777 };
@@ -35,7 +44,9 @@ export async function readFileSnapshot(filePath: string): Promise<FileSnapshot> 
   }
 }
 
-export async function readEncryptedFileSnapshot(filePath: string): Promise<EncryptedFileSnapshot> {
+export async function readEncryptedFileSnapshot(
+  filePath: string,
+): Promise<EncryptedFileSnapshot> {
   const snapshot = await readFileSnapshot(filePath);
   return { ciphertext: snapshot.content, mode: snapshot.mode };
 }

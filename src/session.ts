@@ -30,7 +30,7 @@ export class EncryptedSession {
     sessionDirectory: SecureSessionDirectory,
     sops: SopsClient,
     editorRuntimePath: string,
-    editorBridgePath: string
+    editorBridgePath: string,
   ): Promise<EncryptedSession> {
     const source = await readEncryptedFileSnapshot(sourcePath);
     const plaintext = await sops.decrypt(sourcePath, source.ciphertext);
@@ -42,7 +42,7 @@ export class EncryptedSession {
       sessionDirectory,
       sops,
       editorRuntimePath,
-      editorBridgePath
+      editorBridgePath,
     });
   }
 
@@ -72,7 +72,7 @@ export class EncryptedSession {
         sessionDirectory: this.options.sessionDirectory,
         sops: this.options.sops,
         editorRuntimePath: this.options.editorRuntimePath,
-        editorBridgePath: this.options.editorBridgePath
+        editorBridgePath: this.options.editorBridgePath,
       });
       this.ciphertext = updatedCiphertext;
       this.plaintext = Buffer.from(plaintext);

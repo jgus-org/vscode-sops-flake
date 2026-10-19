@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
 import * as vscode from "vscode";
 import { encryptPlaintextFile } from "./encrypt-transaction.js";
-import { prepareRuntimeRoot, SecureSessionDirectory } from "./secure-runtime.js";
+import {
+  prepareRuntimeRoot,
+  SecureSessionDirectory,
+} from "./secure-runtime.js";
 import { EncryptedSession } from "./session.js";
 import {
   combineSecurityFindings,
@@ -13,7 +16,7 @@ import {
   SecurityFinding,
   SecurityPosture,
   SecurityWarningGate,
-  untrustedExtensionIds
+  untrustedExtensionIds,
 } from "./security-posture.js";
 import { SourceLifecycle } from "./source-lifecycle.js";
 import { SopsClient, SopsUnavailableError } from "./sops-client.js";
@@ -37,20 +40,32 @@ class ExtensionController {
     this.disposables.push(
       vscode.workspace.registerFileSystemProvider("sops", this.provider, {
         isCaseSensitive: true,
-        isReadonly: false
+        isReadonly: false,
       }),
-      vscode.commands.registerCommand("sops-safe.openDecrypted", async (uri?: vscode.Uri) => {
-        await this.openFromCommand(uri);
-      }),
-      vscode.commands.registerCommand("sops-safe.encryptInPlace", async (uri?: vscode.Uri) => {
-        await this.encryptFromCommand(uri);
-      }),
-      vscode.commands.registerCommand("sops-safe.checkSecurityPosture", async () => {
-        await this.showSecurityPosture();
-      }),
-      vscode.commands.registerCommand("sops-safe.resetTrustedExtensions", async () => {
-        await this.resetTrustedExtensions();
-      }),
+      vscode.commands.registerCommand(
+        "sops-safe.openDecrypted",
+        async (uri?: vscode.Uri) => {
+          await this.openFromCommand(uri);
+        },
+      ),
+      vscode.commands.registerCommand(
+        "sops-safe.encryptInPlace",
+        async (uri?: vscode.Uri) => {
+          await this.encryptFromCommand(uri);
+        },
+      ),
+      vscode.commands.registerCommand(
+        "sops-safe.checkSecurityPosture",
+        async () => {
+          await this.showSecurityPosture();
+        },
+      ),
+      vscode.commands.registerCommand(
+        "sops-safe.resetTrustedExtensions",
+        async () => {
+          await this.resetTrustedExtensions();
+        },
+      ),
       vscode.workspace.onDidOpenTextDocument((document) => {
         void this.consider(document);
       }),
@@ -72,7 +87,7 @@ class ExtensionController {
             void this.warnAboutSecurityPosture();
           }
         }
-      })
+      }),
     );
 
     for (const document of vscode.workspace.textDocuments) {
@@ -88,13 +103,18 @@ class ExtensionController {
   }
 
   private configuredSops(): SopsClient {
-    const executable = vscode.workspace.getConfiguration("sops-safe").get<string>("sopsPath", "sops");
+    const executable = vscode.workspace
+      .getConfiguration("sops-safe")
+      .get<string>("sopsPath", "sops");
     return new SopsClient(executable);
   }
 
   private runtimeRootPath(): Promise<string> {
     this.runtimeRoot ??= prepareRuntimeRoot(
-      vscode.workspace.getConfiguration("sops-safe").get<string>("runtimeDirectory", "").trim() || undefined
+      vscode.workspace
+        .getConfiguration("sops-safe")
+        .get<string>("runtimeDirectory", "")
+        .trim() || undefined,
     );
     return this.runtimeRoot;
   }
@@ -103,7 +123,11 @@ class ExtensionController {
     if (!vscode.workspace.isTrusted) {
       throw new Error("SOPS editing is disabled in an untrusted workspace.");
     }
-    if (vscode.workspace.workspaceFolders?.some((folder) => folder.uri.scheme !== "file") === true) {
+    if (
+      vscode.workspace.workspaceFolders?.some(
+        (folder) => folder.uri.scheme !== "file",
+      ) === true
+    ) {
       throw new Error("SOPS editing is unavailable in a virtual workspace.");
     }
   }
@@ -111,31 +135,48 @@ class ExtensionController {
   private assertLocalWorkspaceFile(uri: vscode.Uri): void {
     this.assertSupportedWorkspace();
     const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
-    if (uri.scheme !== "file" || workspaceFolder === undefined || workspaceFolder.uri.scheme !== "file") {
-      throw new Error("The active document is not a local file in the current workspace.");
+    if (
+      uri.scheme !== "file" ||
+      workspaceFolder === undefined ||
+      workspaceFolder.uri.scheme !== "file"
+    ) {
+      throw new Error(
+        "The active document is not a local file in the current workspace.",
+      );
     }
   }
 
   private async openFromCommand(argument?: vscode.Uri): Promise<void> {
     try {
       this.assertSupportedWorkspace();
-      const sourceUri = argument ?? vscode.window.activeTextEditor?.document.uri;
+      const sourceUri =
+        argument ?? vscode.window.activeTextEditor?.document.uri;
       if (sourceUri === undefined || sourceUri.scheme !== "file") {
         throw new Error("The active document is not a local file.");
       }
       if (!(await this.configuredSops().isEncrypted(sourceUri.fsPath))) {
-        throw new Error("The active document is not a readable SOPS-encrypted file.");
+        throw new Error(
+          "The active document is not a readable SOPS-encrypted file.",
+        );
       }
       this.lifecycle.markEncrypted(sourceUri.fsPath);
-      await this.openEncrypted(sourceUri, vscode.window.activeTextEditor?.document.languageId);
+      await this.openEncrypted(
+        sourceUri,
+        vscode.window.activeTextEditor?.document.languageId,
+      );
     } catch (error) {
-      await vscode.window.showErrorMessage(error instanceof Error ? error.message : "The encrypted document could not be opened.");
+      await vscode.window.showErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "The encrypted document could not be opened.",
+      );
     }
   }
 
   private async encryptFromCommand(argument?: vscode.Uri): Promise<void> {
     try {
-      const sourceUri = argument ?? vscode.window.activeTextEditor?.document.uri;
+      const sourceUri =
+        argument ?? vscode.window.activeTextEditor?.document.uri;
       if (sourceUri === undefined) {
         throw new Error("There is no active document.");
       }
@@ -145,12 +186,14 @@ class ExtensionController {
         throw new Error("The plaintext document has unsaved changes.");
       }
 
-      const sessionDirectory = await SecureSessionDirectory.create(await this.runtimeRootPath());
+      const sessionDirectory = await SecureSessionDirectory.create(
+        await this.runtimeRootPath(),
+      );
       try {
         const sops = this.configuredSops().withEnvironment({
           TMPDIR: sessionDirectory.path,
           TMP: sessionDirectory.path,
-          TEMP: sessionDirectory.path
+          TEMP: sessionDirectory.path,
         });
         await encryptPlaintextFile(sourceUri.fsPath, sops);
       } finally {
@@ -161,7 +204,11 @@ class ExtensionController {
       this.lifecycle.markEncrypted(sourceUri.fsPath);
       await this.openEncrypted(sourceUri, document.languageId);
     } catch (error) {
-      await vscode.window.showErrorMessage(error instanceof Error ? error.message : "The plaintext document could not be encrypted.");
+      await vscode.window.showErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "The plaintext document could not be encrypted.",
+      );
     }
   }
 
@@ -191,12 +238,19 @@ class ExtensionController {
         this.unavailableReported = true;
         await vscode.window.showErrorMessage(error.message);
       } else if (encrypted) {
-        await vscode.window.showErrorMessage(error instanceof Error ? error.message : "The encrypted document could not be opened.");
+        await vscode.window.showErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "The encrypted document could not be opened.",
+        );
       }
     }
   }
 
-  private async openEncrypted(sourceUri: vscode.Uri, languageId?: string): Promise<vscode.Uri> {
+  private async openEncrypted(
+    sourceUri: vscode.Uri,
+    languageId?: string,
+  ): Promise<vscode.Uri> {
     await this.warnAboutSecurityPosture();
     const sourceKey = sourceUri.fsPath;
     const existing = this.sourceSessions.get(sourceKey);
@@ -223,11 +277,13 @@ class ExtensionController {
   }
 
   private async createSession(sourceUri: vscode.Uri): Promise<vscode.Uri> {
-    const sessionDirectory = await SecureSessionDirectory.create(await this.runtimeRootPath());
+    const sessionDirectory = await SecureSessionDirectory.create(
+      await this.runtimeRootPath(),
+    );
     const sops = this.configuredSops().withEnvironment({
       TMPDIR: sessionDirectory.path,
       TMP: sessionDirectory.path,
-      TEMP: sessionDirectory.path
+      TEMP: sessionDirectory.path,
     });
     try {
       const session = await EncryptedSession.open(
@@ -235,9 +291,12 @@ class ExtensionController {
         sessionDirectory,
         sops,
         process.execPath,
-        this.context.asAbsolutePath("dist/editor-bridge.js")
+        this.context.asAbsolutePath("dist/editor-bridge.js"),
       );
-      const virtualUri = sourceUri.with({ scheme: "sops", query: `session=${randomUUID()}` });
+      const virtualUri = sourceUri.with({
+        scheme: "sops",
+        query: `session=${randomUUID()}`,
+      });
       this.provider.register(virtualUri, session);
       this.sourceSessions.set(sourceUri.fsPath, virtualUri);
       this.lifecycle.sessionOpened(sourceUri.fsPath);
@@ -251,7 +310,10 @@ class ExtensionController {
   private async show(uri: vscode.Uri, languageId?: string): Promise<void> {
     let document = await vscode.workspace.openTextDocument(uri);
     if (languageId !== undefined && document.languageId !== languageId) {
-      document = await vscode.languages.setTextDocumentLanguage(document, languageId);
+      document = await vscode.languages.setTextDocumentLanguage(
+        document,
+        languageId,
+      );
     }
     await vscode.window.showTextDocument(document, { preview: false });
   }
@@ -296,14 +358,21 @@ class ExtensionController {
         await this.consider(document);
       }
     } catch (error) {
-      await vscode.window.showErrorMessage(error instanceof Error ? error.message : "The encrypted document could not be opened.");
+      await vscode.window.showErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "The encrypted document could not be opened.",
+      );
     }
   }
 
   private async closeSession(uri: vscode.Uri): Promise<void> {
     const session = this.provider.get(uri);
     if (session !== undefined) {
-      if (this.sourceSessions.get(session.sourcePath)?.toString() === uri.toString()) {
+      if (
+        this.sourceSessions.get(session.sourcePath)?.toString() ===
+        uri.toString()
+      ) {
         this.sourceSessions.delete(session.sourcePath);
       }
       this.lifecycle.sessionClosed(session.sourcePath);
@@ -314,7 +383,11 @@ class ExtensionController {
   private sourceTabIsOpen(sourcePath: string): boolean {
     for (const group of vscode.window.tabGroups.all) {
       for (const tab of group.tabs) {
-        if (this.tabUris(tab).some((uri) => uri.scheme === "file" && uri.fsPath === sourcePath)) {
+        if (
+          this.tabUris(tab).some(
+            (uri) => uri.scheme === "file" && uri.fsPath === sourcePath,
+          )
+        ) {
           return true;
         }
       }
@@ -324,7 +397,11 @@ class ExtensionController {
 
   private async closeSourceTabs(sourcePath: string): Promise<void> {
     const tabs = vscode.window.tabGroups.all.flatMap((group) =>
-      group.tabs.filter((tab) => this.tabUris(tab).some((uri) => uri.scheme === "file" && uri.fsPath === sourcePath))
+      group.tabs.filter((tab) =>
+        this.tabUris(tab).some(
+          (uri) => uri.scheme === "file" && uri.fsPath === sourcePath,
+        ),
+      ),
     );
     if (tabs.length > 0) {
       await vscode.window.tabGroups.close(tabs);
@@ -332,7 +409,10 @@ class ExtensionController {
   }
 
   private tabUris(tab: vscode.Tab): vscode.Uri[] {
-    if (tab.input instanceof vscode.TabInputText || tab.input instanceof vscode.TabInputCustom) {
+    if (
+      tab.input instanceof vscode.TabInputText ||
+      tab.input instanceof vscode.TabInputCustom
+    ) {
       return [tab.input.uri];
     }
     if (tab.input instanceof vscode.TabInputTextDiff) {
@@ -344,7 +424,7 @@ class ExtensionController {
   private async inspectSecurityPosture(): Promise<SecurityPosture> {
     const backupStorage = await inspectBackupStorage(
       this.context.globalStorageUri.scheme,
-      this.context.globalStorageUri.fsPath
+      this.context.globalStorageUri.fsPath,
     );
     const trustedExtensionIds = this.configuredTrustedExtensionIds();
     const extensionHost = inspectExtensionHost(
@@ -353,8 +433,8 @@ class ExtensionController {
       trustedExtensionIds,
       vscode.extensions.all.map((extension) => ({
         id: extension.id,
-        extensionPath: extension.extensionPath
-      }))
+        extensionPath: extension.extensionPath,
+      })),
     );
     return combineSecurityFindings([backupStorage, extensionHost]);
   }
@@ -374,7 +454,9 @@ class ExtensionController {
     this.postureWarning.markReported(posture);
     for (const finding of posture.findings) {
       if (finding.status === "safe") {
-        await vscode.window.showInformationMessage(formatSecurityFinding(finding));
+        await vscode.window.showInformationMessage(
+          formatSecurityFinding(finding),
+        );
       } else {
         await this.showSecurityFindingWarning(finding);
       }
@@ -383,38 +465,68 @@ class ExtensionController {
 
   private configuredTrustedExtensionIds(): string[] {
     return extensionIdsFromSetting(
-      vscode.workspace.getConfiguration("sops-safe").get<unknown>("trustedExtensions")
+      vscode.workspace
+        .getConfiguration("sops-safe")
+        .get<unknown>("trustedExtensions"),
     );
   }
 
-  private async showSecurityFindingWarning(finding: SecurityFinding): Promise<void> {
-    const extensionIds = finding.boundary === "extension-host" ? untrustedExtensionIds(finding) : [];
-    const selection = extensionIds.length > 0
-      ? await vscode.window.showWarningMessage(formatSecurityFinding(finding), TRUST_CURRENT_EXTENSIONS)
-      : await vscode.window.showWarningMessage(formatSecurityFinding(finding));
+  private async showSecurityFindingWarning(
+    finding: SecurityFinding,
+  ): Promise<void> {
+    const extensionIds =
+      finding.boundary === "extension-host"
+        ? untrustedExtensionIds(finding)
+        : [];
+    const selection =
+      extensionIds.length > 0
+        ? await vscode.window.showWarningMessage(
+            formatSecurityFinding(finding),
+            TRUST_CURRENT_EXTENSIONS,
+          )
+        : await vscode.window.showWarningMessage(
+            formatSecurityFinding(finding),
+          );
     if (selection === TRUST_CURRENT_EXTENSIONS) {
       try {
         await this.trustExtensions(extensionIds);
       } catch (error) {
         await vscode.window.showErrorMessage(
-          error instanceof Error ? `The trusted-extension setting could not be updated: ${error.message}` : "The trusted-extension setting could not be updated."
+          error instanceof Error
+            ? `The trusted-extension setting could not be updated: ${error.message}`
+            : "The trusted-extension setting could not be updated.",
         );
       }
     }
   }
 
-  private async trustExtensions(extensionIds: readonly string[]): Promise<void> {
+  private async trustExtensions(
+    extensionIds: readonly string[],
+  ): Promise<void> {
     const configuration = vscode.workspace.getConfiguration("sops-safe");
-    const trusted = mergeExtensionIds(this.configuredTrustedExtensionIds(), extensionIds);
-    await configuration.update("trustedExtensions", trusted, vscode.ConfigurationTarget.Global);
+    const trusted = mergeExtensionIds(
+      this.configuredTrustedExtensionIds(),
+      extensionIds,
+    );
+    await configuration.update(
+      "trustedExtensions",
+      trusted,
+      vscode.ConfigurationTarget.Global,
+    );
   }
 
   private async resetTrustedExtensions(): Promise<void> {
     await vscode.workspace
       .getConfiguration("sops-safe")
-      .update("trustedExtensions", undefined, vscode.ConfigurationTarget.Global);
+      .update(
+        "trustedExtensions",
+        undefined,
+        vscode.ConfigurationTarget.Global,
+      );
     this.postureWarning.resetBoundary("extension-host");
-    await vscode.window.showInformationMessage("The SOPS trusted-extension setting was reset.");
+    await vscode.window.showInformationMessage(
+      "The SOPS trusted-extension setting was reset.",
+    );
   }
 }
 

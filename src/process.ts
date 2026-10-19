@@ -12,11 +12,13 @@ export class CommandFailure extends Error {
     executable: string,
     readonly code: number | null,
     readonly signal: NodeJS.Signals | null,
-    readonly stderr: string
+    readonly stderr: string,
   ) {
-    const status = code === null ? signal ?? "unknown" : code.toString();
+    const status = code === null ? (signal ?? "unknown") : code.toString();
     const detail = stderr.trim();
-    super(`${executable} exited with status ${status}.${detail.length === 0 ? "" : ` ${detail}`}`);
+    super(
+      `${executable} exited with status ${status}.${detail.length === 0 ? "" : ` ${detail}`}`,
+    );
     this.name = "CommandFailure";
   }
 }
@@ -30,13 +32,13 @@ export interface CommandOptions {
 export async function runCommand(
   executable: string,
   arguments_: readonly string[],
-  options: CommandOptions = {}
+  options: CommandOptions = {},
 ): Promise<Buffer> {
   return await new Promise<Buffer>((resolve, reject) => {
     const child = spawn(executable, arguments_, {
       cwd: options.workingDirectory,
       env: options.environment ?? process.env,
-      stdio: ["pipe", "pipe", "pipe"]
+      stdio: ["pipe", "pipe", "pipe"],
     });
     const chunks: Buffer[] = [];
     const errorChunks: Buffer[] = [];
@@ -54,7 +56,14 @@ export async function runCommand(
         return;
       }
       if (code !== 0) {
-        reject(new CommandFailure(executable, code, signal, Buffer.concat(errorChunks).toString("utf8")));
+        reject(
+          new CommandFailure(
+            executable,
+            code,
+            signal,
+            Buffer.concat(errorChunks).toString("utf8"),
+          ),
+        );
         return;
       }
       resolve(Buffer.concat(chunks));
