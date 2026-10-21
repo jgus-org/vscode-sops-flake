@@ -98,5 +98,5 @@ SOPS Safe deliberately does not support untrusted workspaces, virtual workspaces
 MIT
 
 <!--
-Agents: do not bulk-edit this file. It is the extension's storefront on the Visual Studio Marketplace and Open VSX, so its prose is user-facing product copy, not developer documentation. Targeted, reviewed edits only.
+Agents: do not bulk-edit this file. It is the extension's storefront on the Visual Studio Marketplace and Open VSX, so its prose is user-facing product copy, not developer documentation. NEVER bulk-edit it (e.g. during a review sweep.) Targeted, _specifically-requested_ edits only.
 -->
