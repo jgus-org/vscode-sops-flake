@@ -2,23 +2,15 @@
   description = "Agent-aware, security-conscious SOPS editing for VS Code.";
 
   inputs = {
+    flake-lib.url = "github:jgus-org/flake-lib/v1";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
-    flake-lib = {
-      url = "github:jgus-org/flake-lib/v1";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    treefmt-nix = {
-      url = "github:numtide/treefmt-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs =
     {
       self,
-      nixpkgs,
       flake-lib,
-      treefmt-nix,
+      nixpkgs,
     }:
     flake-lib.lib.eachDefaultLinuxSystem (
       system:
@@ -26,26 +18,35 @@
         pkgs = import nixpkgs { inherit system; };
         version = (builtins.fromJSON (builtins.readFile ./package.json)).version;
 
-        treefmtEval = treefmt-nix.lib.evalModule pkgs {
-          projectRootFile = "flake.nix";
-          programs.nixfmt.enable = true;
-          programs.shfmt.enable = true;
-          programs.prettier.enable = true;
-          # Unscoped prettier claims *.yaml/*.json and would reflow secrets.yaml, package-lock.json and the release workflows.
-          programs.prettier.includes = [
-            "*.ts"
-            "*.mjs"
+        orgFormatting = flake-lib.lib.mkFormatting {
+          inherit self system;
+          excludes = [
+            "package-lock.json"
+            "secrets.yaml"
           ];
         };
 
         vsix = pkgs.stdenvNoCC.mkDerivation {
-          name = "sops-safe-${version}.vsix";
-          pname = "sops-safe-vsix";
           inherit version;
-          src = ./.;
-
-          npmDeps = pkgs.importNpmLock { npmRoot = ./.; };
-
+          buildPhase = ''
+            runHook preBuild
+            npm run build
+            runHook postBuild
+          '';
+          checkPhase = ''
+            runHook preCheck
+            export TMPDIR=/dev/shm
+            npm test
+            runHook postCheck
+          '';
+          doCheck = true;
+          installPhase = ''
+            runHook preInstall
+            npm run package
+            cp "sops-safe-${version}.vsix" "$out"
+            runHook postInstall
+          '';
+          name = "sops-safe-${version}.vsix";
           nativeBuildInputs = with pkgs; [
             age
             librsvg
@@ -53,45 +54,26 @@
             importNpmLock.npmConfigHook
             sops
           ];
-
+          npmDeps = pkgs.importNpmLock { npmRoot = ./.; };
           npmInstallFlags = [ "--ignore-scripts" ];
           npmRebuildFlags = [ "--ignore-scripts" ];
-
-          buildPhase = ''
-            runHook preBuild
-            npm run build
-            runHook postBuild
-          '';
-
-          doCheck = true;
-          checkPhase = ''
-            runHook preCheck
-            export TMPDIR=/dev/shm
-            npm test
-            runHook postCheck
-          '';
-
-          installPhase = ''
-            runHook preInstall
-            npm run package
-            cp "sops-safe-${version}.vsix" "$out"
-            runHook postInstall
-          '';
+          pname = "sops-safe-vsix";
+          src = ./.;
         };
 
         sops-safe = pkgs.vscode-utils.buildVscodeExtension {
-          pname = "sops-safe";
           inherit version;
-          vscodeExtPublisher = "jgus";
-          vscodeExtName = "sops-safe";
-          vscodeExtUniqueId = "jgus.sops-safe";
-          src = vsix;
-          passthru = { inherit vsix; };
           meta = {
             description = "Agent-aware, security-conscious SOPS editing for VS Code";
             license = pkgs.lib.licenses.mit;
             platforms = pkgs.lib.platforms.linux;
           };
+          passthru = { inherit vsix; };
+          pname = "sops-safe";
+          src = vsix;
+          vscodeExtName = "sops-safe";
+          vscodeExtPublisher = "jgus";
+          vscodeExtUniqueId = "jgus.sops-safe";
         };
 
         version-stamp = pkgs.writeShellApplication {
@@ -122,19 +104,13 @@
         };
       in
       {
-        packages = {
-          inherit sops-safe vsix;
-          default = sops-safe;
+        apps.version-stamp = {
+          program = "${version-stamp}/bin/version-stamp";
+          type = "app";
         };
-
-        formatter = treefmtEval.config.build.wrapper;
         checks = {
           default = sops-safe;
-          formatting = treefmtEval.config.build.check self;
-        };
-        apps.version-stamp = {
-          type = "app";
-          program = "${version-stamp}/bin/version-stamp";
+          formatting = orgFormatting.check;
         };
         devShells.default = pkgs.mkShellNoCC {
           packages = with pkgs; [
@@ -145,6 +121,11 @@
             ovsx
             version-stamp
           ];
+        };
+        formatter = orgFormatting.formatter;
+        packages = {
+          inherit sops-safe vsix;
+          default = sops-safe;
         };
       }
     );
