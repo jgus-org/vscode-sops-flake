@@ -42,7 +42,7 @@ jobs:
         if: inputs.mode == 'publish'
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: '24'
+          node-version: "24"
           package-manager-cache: false
 
       - name: Download and validate latest release

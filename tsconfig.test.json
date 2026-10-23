@@ -7,8 +7,5 @@
     "declaration": false,
     "sourceMap": false
   },
-  "include": [
-    "src/editor-bridge.ts",
-    "test/**/*.ts"
-  ]
+  "include": ["src/editor-bridge.ts", "test/**/*.ts"]
 }
