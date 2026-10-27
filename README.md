@@ -93,10 +93,8 @@ SOPS Safe deliberately does not support untrusted workspaces, virtual workspaces
   - **code-server:** Copy the downloaded file to the code-server host and run `code-server --install-extension /path/to/sops-safe-<version>.vsix` there.
 - **Nix:** Use this flake's `packages.<system>.sops-safe` extension package.
 
-## License
-
-MIT
-
 <!--
 Agents: do not bulk-edit this file. It is the extension's storefront on the Visual Studio Marketplace and Open VSX, so its prose is user-facing product copy, not developer documentation. NEVER bulk-edit it (e.g. during a review sweep.) Targeted, _specifically-requested_ edits only.
 -->
+
+See [LICENSE.md](LICENSE.md) for licensing and copyright.
